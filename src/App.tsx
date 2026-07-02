@@ -46,8 +46,7 @@ const DEFAULT_CONFIG = {
     { label: 'Our Story', target: 'home' },
     { label: 'Shop All', target: 'shop' },
     { label: 'Signature Heritage', target: 'detail' },
-    { label: 'Sizing Help', target: 'page:sizing-guide' },
-    { label: 'Google SEO Hub', target: 'seo' }
+    { label: 'Sizing Help', target: 'page:sizing-guide' }
   ],
   
   pages: [
@@ -607,6 +606,12 @@ export default function App() {
                   siteConfig={siteConfig}
                   setSiteConfig={setSiteConfig}
                   onNavigateHome={() => setActiveView('home')}
+                  onNavigateToView={(view, subTarget) => {
+                    setActiveView(view);
+                    if (subTarget) setCurrentPageSlug(subTarget);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  setCurrentPageSlug={setCurrentPageSlug}
                   onLogout={() => {
                     setIsAdminLoggedIn(false);
                     setActiveView('home');

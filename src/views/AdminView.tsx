@@ -24,20 +24,31 @@ import {
   BookOpen,
   Compass,
   Link,
-  LogOut
+  LogOut,
+  Globe
 } from 'lucide-react';
 import { Product, Review } from '../types';
 import WysiwygEditor from '../components/WysiwygEditor';
+import SeoView from './SeoView';
 
 interface AdminViewProps {
   siteConfig: any;
   setSiteConfig: (config: any) => void;
   onNavigateHome: () => void;
   onLogout: () => void;
+  onNavigateToView?: (view: any, subTarget?: string) => void;
+  setCurrentPageSlug?: (slug: string) => void;
 }
 
-export default function AdminView({ siteConfig, setSiteConfig, onNavigateHome, onLogout }: AdminViewProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'homepage' | 'products' | 'categories' | 'pages' | 'navigation' | 'reviews'>('dashboard');
+export default function AdminView({ 
+  siteConfig, 
+  setSiteConfig, 
+  onNavigateHome, 
+  onLogout,
+  onNavigateToView = () => {},
+  setCurrentPageSlug = () => {}
+}: AdminViewProps) {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'homepage' | 'products' | 'categories' | 'pages' | 'navigation' | 'reviews' | 'seo'>('dashboard');
   const [isSavedToastOpen, setIsSavedToastOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
 
@@ -374,6 +385,18 @@ export default function AdminView({ siteConfig, setSiteConfig, onNavigateHome, o
           >
             <MessageSquare size={18} />
             <span>Parent Reviews</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('seo')}
+            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-3 transition-all ${
+              activeTab === 'seo' 
+                ? 'bg-[#EAF3EF] text-[#008060]' 
+                : 'text-[#4C4E50] hover:bg-[#F6F6F7]'
+            }`}
+          >
+            <Globe size={18} />
+            <span>Google SEO Hub</span>
           </button>
         </aside>
 
@@ -1855,6 +1878,17 @@ export default function AdminView({ siteConfig, setSiteConfig, onNavigateHome, o
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* TAB 5: GOOGLE SEO HUB */}
+          {activeTab === 'seo' && (
+            <div className="flex flex-col gap-6">
+              <SeoView 
+                siteConfig={siteConfig}
+                onNavigateToView={(view, subTarget) => onNavigateToView(view, subTarget)}
+                setCurrentPageSlug={setCurrentPageSlug}
+              />
             </div>
           )}
 

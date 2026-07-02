@@ -140,7 +140,7 @@ export default function Navbar({
               { label: 'Our Story', target: 'home' },
               { label: 'Shop All', target: 'shop' },
               { label: 'Signature Heritage', target: 'detail' }
-            ]).map((navItem: any, index: number) => {
+            ]).filter((item: any) => item.target !== 'seo').map((navItem: any, index: number) => {
               const isPageActive = navItem.target.startsWith('page:') && activeView === 'page' && currentPageSlug === navItem.target.replace('page:', '');
               const isShopActive = navItem.target === 'shop' && activeView === 'shop';
               const isHomeActive = navItem.target === 'home' && activeView === 'home';
@@ -255,7 +255,7 @@ export default function Navbar({
                   { label: 'Our Story', target: 'home' },
                   { label: 'Shop All', target: 'shop' },
                   { label: 'Signature Heritage', target: 'detail' }
-                ]).map((navItem: any, index: number) => {
+                ]).filter((item: any) => item.target !== 'seo').map((navItem: any, index: number) => {
                   const isPageActive = navItem.target.startsWith('page:') && activeView === 'page' && currentPageSlug === navItem.target.replace('page:', '');
                   const isShopActive = navItem.target === 'shop' && activeView === 'shop';
                   const isHomeActive = navItem.target === 'home' && activeView === 'home';
