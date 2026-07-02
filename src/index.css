@@ -28,16 +28,35 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
 }
 ::-webkit-scrollbar-thumb {
-  background: #D8C3A5;
+  background: #C97C5D;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #C97C5D;
+  background: #121212;
+}
+
+/* Shopify Customizer Specific High-Visibility Scrollbar */
+.shopify-customizer-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.shopify-customizer-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+}
+.shopify-customizer-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 80, 60, 0.25); /* Muted Shopify Green */
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: padding-box;
+}
+.shopify-customizer-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #008060; /* Solid Shopify Green */
 }

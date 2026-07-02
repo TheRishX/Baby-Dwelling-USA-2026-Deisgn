@@ -107,7 +107,7 @@ export default function ShopifyCustomizer({
   ];
 
   return (
-    <div className="w-full h-full bg-[#F6F6F7] border-r border-[#E1E3E5] flex flex-col font-sans select-none text-charcoal shadow-lg">
+    <div className="w-full h-full bg-[#F6F6F7] border-r border-[#E1E3E5] flex flex-col font-sans text-charcoal shadow-lg">
       
       {/* Customizer Top Header */}
       <div className="p-4 bg-white border-b border-[#E1E3E5] flex items-center justify-between">
@@ -192,7 +192,7 @@ export default function ShopifyCustomizer({
       </div>
 
       {/* Accordion List with Scrollbar */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto shopify-customizer-scrollbar p-4 flex flex-col gap-3">
         
         {/* SECTION: Site Presets & Aesthetics */}
         <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
@@ -274,7 +274,7 @@ export default function ShopifyCustomizer({
             <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
               <span className="text-[10px] font-bold text-gray-500 uppercase">Top Menu Links</span>
               
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
                 {(siteConfig.navigation || []).map((navItem: any, index: number) => (
                   <div key={index} className="flex gap-1.5 items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
                     <input 
@@ -282,12 +282,12 @@ export default function ShopifyCustomizer({
                       value={navItem.label} 
                       onChange={(e) => handleNestedFieldChange('navigation', index, 'label', e.target.value)}
                       placeholder="Menu Label"
-                      className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-bold w-1/2"
+                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold w-1/2 focus:border-[#008060] transition-colors"
                     />
                     <select 
                       value={navItem.target}
                       onChange={(e) => handleNestedFieldChange('navigation', index, 'target', e.target.value)}
-                      className="border border-[#C9CCCF] rounded p-1 text-xs bg-white outline-none w-5/12 text-gray-600"
+                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs bg-white outline-none w-5/12 text-gray-600 focus:border-[#008060] transition-colors"
                     >
                       <option value="home">Home</option>
                       <option value="shop">Shop All</option>
@@ -470,14 +470,14 @@ export default function ShopifyCustomizer({
                   type="text" 
                   value={siteConfig.badge1Title || ''} 
                   onChange={(e) => handleFieldChange('badge1Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-bold"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
                   placeholder="Badge Title"
                 />
                 <input 
                   type="text" 
                   value={siteConfig.badge1Text || ''} 
                   onChange={(e) => handleFieldChange('badge1Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white text-gray-600"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
                   placeholder="Badge Subtext Description"
                 />
               </div>
@@ -489,14 +489,14 @@ export default function ShopifyCustomizer({
                   type="text" 
                   value={siteConfig.badge2Title || ''} 
                   onChange={(e) => handleFieldChange('badge2Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-bold"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
                   placeholder="Badge Title"
                 />
                 <input 
                   type="text" 
                   value={siteConfig.badge2Text || ''} 
                   onChange={(e) => handleFieldChange('badge2Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white text-gray-600"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
                   placeholder="Badge Subtext Description"
                 />
               </div>
@@ -508,14 +508,14 @@ export default function ShopifyCustomizer({
                   type="text" 
                   value={siteConfig.badge3Title || ''} 
                   onChange={(e) => handleFieldChange('badge3Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-bold"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
                   placeholder="Badge Title"
                 />
                 <input 
                   type="text" 
                   value={siteConfig.badge3Text || ''} 
                   onChange={(e) => handleFieldChange('badge3Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white text-gray-600"
+                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
                   placeholder="Badge Subtext Description"
                 />
               </div>
@@ -540,7 +540,7 @@ export default function ShopifyCustomizer({
             <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
               <span className="text-[10px] font-bold text-gray-500 uppercase">Manage Collection Categories</span>
               
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
                 {(siteConfig.categories || []).map((cat: any, index: number) => (
                   <div key={cat.id} className="flex gap-1.5 items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
                     <input 
@@ -548,7 +548,7 @@ export default function ShopifyCustomizer({
                       value={cat.name} 
                       onChange={(e) => handleNestedFieldChange('categories', index, 'name', e.target.value)}
                       placeholder="Category Title"
-                      className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-bold w-1/2"
+                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold w-1/2 focus:border-[#008060] transition-colors"
                     />
                     <input 
                       type="text" 
@@ -556,7 +556,7 @@ export default function ShopifyCustomizer({
                       disabled={cat.id === 'all'}
                       onChange={(e) => handleNestedFieldChange('categories', index, 'id', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                       placeholder="id-slug"
-                      className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white text-gray-500 font-mono w-5/12 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-500 font-mono w-5/12 disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
                     />
                     {cat.id !== 'all' && cat.id !== 'carriers' && (
                       <button 
@@ -599,7 +599,7 @@ export default function ShopifyCustomizer({
             <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
               <span className="text-[10px] font-bold text-gray-500 uppercase">Manage Standalone Pages</span>
               
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
                 {(siteConfig.pages || []).map((page: any, index: number) => (
                   <div key={page.id} className="border border-gray-150 rounded-xl p-3 bg-gray-50/50 flex flex-col gap-2">
                     <div className="flex justify-between items-center">
@@ -619,7 +619,7 @@ export default function ShopifyCustomizer({
                         type="text" 
                         value={page.title} 
                         onChange={(e) => handleNestedFieldChange('pages', index, 'title', e.target.value)}
-                        className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-semibold"
+                        className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold focus:border-[#008060] transition-colors"
                       />
                     </div>
 
@@ -629,7 +629,7 @@ export default function ShopifyCustomizer({
                         type="text" 
                         value={page.slug} 
                         onChange={(e) => handleNestedFieldChange('pages', index, 'slug', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                        className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-mono text-gray-500"
+                        className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors"
                       />
                     </div>
 
@@ -683,7 +683,7 @@ export default function ShopifyCustomizer({
             <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
               <span className="text-[10px] font-bold text-gray-500 uppercase">Quick Price & Details Customizer</span>
               
-              <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2.5 max-h-[480px] overflow-y-auto shopify-customizer-scrollbar pr-3">
                 {(siteConfig.products || []).map((prod: Product, index: number) => (
                   <div key={prod.id} className="border border-gray-150 rounded-xl p-3 bg-gray-50/55 flex flex-col gap-2">
                     <div className="flex justify-between items-center">
@@ -700,26 +700,26 @@ export default function ShopifyCustomizer({
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[8px] font-bold text-gray-400">Sale Price (£)</span>
                         <div className="relative">
-                          <DollarSign size={10} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <DollarSign size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input 
                             type="number" 
                             step="0.01"
                             value={prod.price} 
                             onChange={(e) => handleNestedFieldChange('products', index, 'price', parseFloat(e.target.value) || 0)}
-                            className="border border-[#C9CCCF] rounded pl-4 pr-1 py-1 text-xs outline-none bg-white font-bold w-full"
+                            className="border border-[#C9CCCF] rounded pl-5 pr-2 py-1.5 text-xs outline-none bg-white font-bold w-full focus:border-[#008060] transition-colors"
                           />
                         </div>
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[8px] font-bold text-gray-400">Original Price (£)</span>
                         <div className="relative">
-                          <DollarSign size={10} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <DollarSign size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input 
                             type="number" 
                             step="0.01"
                             value={prod.originalPrice || ''} 
                             onChange={(e) => handleNestedFieldChange('products', index, 'originalPrice', parseFloat(e.target.value) || undefined)}
-                            className="border border-[#C9CCCF] rounded pl-4 pr-1 py-1 text-xs outline-none bg-white text-gray-500 w-full"
+                            className="border border-[#C9CCCF] rounded pl-5 pr-2 py-1.5 text-xs outline-none bg-white text-gray-500 w-full focus:border-[#008060] transition-colors"
                             placeholder="MSRP"
                           />
                         </div>
@@ -734,7 +734,7 @@ export default function ShopifyCustomizer({
                             type="text" 
                             value={prod.title} 
                             onChange={(e) => handleNestedFieldChange('products', index, 'title', e.target.value)}
-                            className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white"
+                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white focus:border-[#008060] transition-colors"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -743,7 +743,7 @@ export default function ShopifyCustomizer({
                             type="text" 
                             value={prod.tagline} 
                             onChange={(e) => handleNestedFieldChange('products', index, 'tagline', e.target.value)}
-                            className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white text-gray-600"
+                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -752,7 +752,7 @@ export default function ShopifyCustomizer({
                             type="text" 
                             value={prod.image} 
                             onChange={(e) => handleNestedFieldChange('products', index, 'image', e.target.value)}
-                            className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-mono text-gray-500"
+                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -762,7 +762,7 @@ export default function ShopifyCustomizer({
                               type="text" 
                               value={prod.badge || ''} 
                               onChange={(e) => handleNestedFieldChange('products', index, 'badge', e.target.value || undefined)}
-                              className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white"
+                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white focus:border-[#008060] transition-colors"
                               placeholder="e.g. Best Seller"
                             />
                           </div>
@@ -772,7 +772,7 @@ export default function ShopifyCustomizer({
                               type="text" 
                               value={prod.buyUrl || ''} 
                               onChange={(e) => handleNestedFieldChange('products', index, 'buyUrl', e.target.value)}
-                              className="border border-[#C9CCCF] rounded p-1 text-xs outline-none bg-white font-mono"
+                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono focus:border-[#008060] transition-colors"
                             />
                           </div>
                         </div>
