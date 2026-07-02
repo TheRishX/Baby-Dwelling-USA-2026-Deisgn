@@ -136,7 +136,8 @@ export default function Navbar({
               const isShopActive = navItem.target === 'shop' && activeView === 'shop';
               const isHomeActive = navItem.target === 'home' && activeView === 'home';
               const isDetailActive = navItem.target === 'detail' && activeView === 'detail';
-              const isActive = isPageActive || isShopActive || isHomeActive || isDetailActive;
+              const isSeoActive = navItem.target === 'seo' && activeView === 'seo';
+              const isActive = isPageActive || isShopActive || isHomeActive || isDetailActive || isSeoActive;
               return (
                 <button
                   key={index}
@@ -250,7 +251,8 @@ export default function Navbar({
                   const isShopActive = navItem.target === 'shop' && activeView === 'shop';
                   const isHomeActive = navItem.target === 'home' && activeView === 'home';
                   const isDetailActive = navItem.target === 'detail' && activeView === 'detail';
-                  const isActive = isPageActive || isShopActive || isHomeActive || isDetailActive;
+                  const isSeoActive = navItem.target === 'seo' && activeView === 'seo';
+                  const isActive = isPageActive || isShopActive || isHomeActive || isDetailActive || isSeoActive;
                   return (
                     <button
                       key={index}

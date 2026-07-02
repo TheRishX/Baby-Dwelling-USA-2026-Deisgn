@@ -12,11 +12,12 @@ import CustomPageView from './views/CustomPageView';
 import ShopifyCustomizer from './components/ShopifyCustomizer';
 import { products as initialProducts, signatureProduct as initialSignatureProduct, reviewsData as initialReviews } from './data';
 import { Settings, Palette } from 'lucide-react';
+import SeoView from './views/SeoView';
 
 const DEFAULT_CONFIG = {
-  heroTagline: 'The Art of Closeness',
-  heroTitle: 'Carry Comfort.<br />Create Memories.',
-  heroSubtitle: 'Experience the pinnacle of gentle luxury with our ergonomically designed, sustainably crafted baby carriers. Intimate connection meets effortless style.',
+  heroTagline: 'Baby Dwelling USA • Premium Certified Organic Babywearing',
+  heroTitle: 'Breathe Easy.<br />Bond Deeply.',
+  heroSubtitle: 'Welcome to Baby Dwelling USA. Experience premium ergonomic comfort with our pediatric-approved, certified hip-healthy baby carriers, ring slings, and wraps. Artfully woven from 100% natural organic fabrics.',
   heroImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAjUGZLXpNyFq8eljDX0MSFwUqLu0nP9QxWQhGuXEjeKOCi36I__npWPkI5my2jneyHJpmFJ0TP6-eg7Qt0Gq7VMb-Cet5YDlJSGVe0Ysx42YRQjOVvrJqqq4niUBZsgAEOM7pDESTwufwBXAM_ukbWo78H5o4lJrMeS2fJSYN9xNCcU5L47rf2w7uydTUMyhi-RiaXM-UbM2bbECDLCP18_2r3D5rbhxJFEnDtKqOYoCJoUq1LohewJ-1TbT91-zK9s1VpWDxtzmo',
   
   badge1Title: 'Ergonomically Certified',
@@ -43,7 +44,8 @@ const DEFAULT_CONFIG = {
     { label: 'Our Story', target: 'home' },
     { label: 'Shop All', target: 'shop' },
     { label: 'Signature Heritage', target: 'detail' },
-    { label: 'Sizing Help', target: 'page:sizing-guide' }
+    { label: 'Sizing Help', target: 'page:sizing-guide' },
+    { label: 'Google SEO Hub', target: 'seo' }
   ],
   
   pages: [
@@ -52,10 +54,10 @@ const DEFAULT_CONFIG = {
       title: 'Our Clean Sourcing Mission',
       slug: 'about-us',
       body: `<div class="space-y-6">
-  <p>At Baby Dwelling, we believe that the closest bond in life is formed during those early, silent hours of skin-to-skin touch. That is why our products are designed with 100% natural, earth-grown fibers.</p>
-  <h3>100% Organic & Clean Raw Materials</h3>
-  <p>Our materials are exclusively sourced from eco-certified fair-trade farms. We avoid heavy metals, chemical dyes, and plastics, ensuring only the gentlest touch for your baby's delicate skin.</p>
-  <blockquote>"Every carrier represents a future of closer connection and cleaner earth for our little ones."</blockquote>
+  <p>At <strong>Baby Dwelling USA</strong>, we believe that the closest bond in life is formed during those early, cozy hours of skin-to-skin touch. That is why our products are designed with 100% natural, certified organic, earth-grown fibers to protect your baby's gentle skin.</p>
+  <h3>100% Organic &amp; Clean Raw Materials</h3>
+  <p>Every ergonomic baby carrier, ring sling, and newborn pouch in our collection is exclusively sourced from certified organic fair-trade farms. By eliminating plastic materials, toxic chemicals, and synthetic dye-stuffs, we guarantee a pure, safe space for your little ones to rest, cuddle, and sleep.</p>
+  <blockquote>"Baby Dwelling USA is dedicated to crafting premium, certified ergonomic baby carriers that provide a lifetime of intimacy, healthy skeletal growth, and ecological preservation."</blockquote>
 </div>`,
       isPublished: true,
       createdAt: '2026-07-01'
@@ -65,10 +67,10 @@ const DEFAULT_CONFIG = {
       title: 'Ergonomic Sizing & Carrying Guide',
       slug: 'sizing-guide',
       body: `<div class="space-y-4">
-  <h3>Finding the Perfect Fit</h3>
-  <p>All Baby Dwelling carriers are crafted to adjust effortlessly to both parents and growing babies. With our fully expandable strap sliders and wrap-around waistbands, finding the perfect position takes less than 30 seconds.</p>
-  <h3>The M-Position Rule</h3>
-  <p>Ensure your baby's hips are always positioned in the pediatric-approved <strong>M-Position</strong>: knees slightly higher than their bottom. This supports natural spinal alignment and prevents hip dysplasia.</p>
+  <h3>Finding the Perfect Fit with Baby Dwelling USA</h3>
+  <p>All <strong>Baby Dwelling USA</strong> ergonomic wraps, slings, and carriers are structurally engineered to adjust effortlessly to all parent body types and growing infants. With our fully expandable shoulder straps, snug waistbands, and certified sliders, mastering babywearing takes less than 30 seconds.</p>
+  <h3>The Pediatric M-Position Rule</h3>
+  <p>Our carriers keep your baby's hips correctly aligned in the pediatric-approved <strong>M-Position</strong>: with knees slightly higher than their bottom. This healthy ergonomic placement supports natural spinal curves and actively prevents infant hip dysplasia.</p>
 </div>`,
       isPublished: true,
       createdAt: '2026-07-01'
@@ -368,6 +370,23 @@ export default function App() {
                       />
                     </motion.div>
                   )}
+
+                  {activeView === 'seo' && (
+                    <motion.div
+                      key="seo"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="pt-12"
+                    >
+                      <SeoView
+                        siteConfig={siteConfig}
+                        onNavigateToView={(view) => setActiveView(view)}
+                        setCurrentPageSlug={setCurrentPageSlug}
+                      />
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </div>
 
@@ -498,6 +517,26 @@ export default function App() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onNavigateToShop={() => handleNavigateToShop('all')}
+              />
+            </motion.div>
+          )}
+
+          {activeView === 'seo' && (
+            <motion.div
+              key="seo"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4 }}
+              className="pt-12"
+            >
+              <SeoView
+                siteConfig={siteConfig}
+                onNavigateToView={(view) => {
+                  setActiveView(view);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                setCurrentPageSlug={setCurrentPageSlug}
               />
             </motion.div>
           )}
