@@ -119,9 +119,18 @@ export default function Navbar({
 
             <button
               onClick={() => handleNavClick('home')}
-              className="font-serif text-xl md:text-2xl font-bold tracking-tight text-charcoal transition-opacity hover:opacity-90 cursor-pointer"
+              className="font-serif text-xl md:text-2xl font-bold tracking-tight text-charcoal transition-all hover:opacity-90 cursor-pointer flex items-center"
             >
-              Baby Dwelling
+              {siteConfig.logoImage ? (
+                <img 
+                  src={siteConfig.logoImage} 
+                  alt={siteConfig.logoText || 'Baby Dwelling'} 
+                  className="h-8 md:h-10 object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>{siteConfig.logoText || 'Baby Dwelling'}</span>
+              )}
             </button>
           </div>
 

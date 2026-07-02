@@ -272,6 +272,32 @@ export default function ShopifyCustomizer({
           
           {openSection === 'navigation' && (
             <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
+              {/* Brand Logo Settings */}
+              <div className="border-b border-gray-150 pb-4 mb-2 flex flex-col gap-3">
+                <span className="text-[10px] font-bold text-[#008060] uppercase tracking-wider">Brand Logo Customization</span>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Logo Brand Text</label>
+                  <input 
+                    type="text" 
+                    value={siteConfig.logoText ?? 'Baby Dwelling'} 
+                    onChange={(e) => handleFieldChange('logoText', e.target.value)}
+                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-serif font-bold"
+                    placeholder="e.g. Baby Dwelling"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Logo Image URL (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={siteConfig.logoImage ?? ''} 
+                    onChange={(e) => handleFieldChange('logoImage', e.target.value)}
+                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-mono"
+                    placeholder="https://example.com/logo.png"
+                  />
+                  <p className="text-[9px] text-gray-400">If provided, this image will replace the text-based brand logo.</p>
+                </div>
+              </div>
+
               <span className="text-[10px] font-bold text-gray-500 uppercase">Top Menu Links</span>
               
               <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">

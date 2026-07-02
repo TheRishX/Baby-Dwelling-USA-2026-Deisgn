@@ -49,7 +49,18 @@ export default function Footer({
           
           {/* Logo & Narrative */}
           <div className="md:col-span-2">
-            <h3 className="font-serif text-2xl font-bold text-charcoal mb-4">Baby Dwelling</h3>
+            <div className="mb-4">
+              {siteConfig.logoImage ? (
+                <img 
+                  src={siteConfig.logoImage} 
+                  alt={siteConfig.logoText || 'Baby Dwelling'} 
+                  className="h-8 object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <h3 className="font-serif text-2xl font-bold text-charcoal">{siteConfig.logoText || 'Baby Dwelling'}</h3>
+              )}
+            </div>
             <p className="font-sans text-sm text-charcoal/70 max-w-sm mb-6 leading-relaxed">
               Crafted for gentle luxury. We create ergonomic, aesthetically beautiful and certified baby carriers, wraps, and accessories for the modern parent.
             </p>

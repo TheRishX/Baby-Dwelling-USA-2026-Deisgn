@@ -15,6 +15,8 @@ import { Settings, Palette } from 'lucide-react';
 import SeoView from './views/SeoView';
 
 const DEFAULT_CONFIG = {
+  logoText: 'Baby Dwelling',
+  logoImage: '',
   heroTagline: 'Baby Dwelling USA • Premium Certified Organic Babywearing',
   heroTitle: 'Breathe Easy.<br />Bond Deeply.',
   heroSubtitle: 'Welcome to Baby Dwelling USA. Experience premium ergonomic comfort with our pediatric-approved, certified hip-healthy baby carriers, ring slings, and wraps. Artfully woven from 100% natural organic fabrics.',
@@ -133,6 +135,55 @@ export default function App() {
     localStorage.setItem('bd_customizing_mode', String(isCustomizingMode));
   }, [isCustomizingMode]);
 
+  // Fetch site configuration from Express server on mount and poll periodically
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/site-config');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data && data.config) {
+          setSiteConfig(data.config);
+          localStorage.setItem('bd_site_config_v1', JSON.stringify(data.config));
+        } else {
+          // No configuration on backend yet, upload current local state as initial configuration
+          const saved = localStorage.getItem('bd_site_config_v1');
+          const initialConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+          saveConfigToBackend(initialConfig);
+        }
+      } catch (err) {
+        console.error('Error loading config from server:', err);
+      }
+    };
+
+    fetchConfig();
+
+    // Poll every 3 seconds for live synchronization across other devices
+    const interval = setInterval(() => {
+      // Only auto-update if the user is NOT actively editing/customizing on this device
+      // to avoid overwriting their current unsaved input.
+      if (!isCustomizingMode) {
+        fetchConfig();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isCustomizingMode]);
+
+  const saveConfigToBackend = async (newConfig: any) => {
+    try {
+      await fetch('/api/site-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: newConfig }),
+      });
+    } catch (err) {
+      console.error('Error saving config to server:', err);
+    }
+  };
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -140,6 +191,7 @@ export default function App() {
 
   const handleSaveConfig = () => {
     localStorage.setItem('bd_site_config_v1', JSON.stringify(siteConfig));
+    saveConfigToBackend(siteConfig);
     triggerToast('✨ Settings saved successfully to live storefront!');
   };
 
@@ -147,6 +199,7 @@ export default function App() {
     if (window.confirm('Are you sure you want to reset all site configuration to default values? Any unsaved edits will be lost.')) {
       setSiteConfig(DEFAULT_CONFIG);
       localStorage.setItem('bd_site_config_v1', JSON.stringify(DEFAULT_CONFIG));
+      saveConfigToBackend(DEFAULT_CONFIG);
       triggerToast('🔄 Configuration reset to factory defaults.');
     }
   };

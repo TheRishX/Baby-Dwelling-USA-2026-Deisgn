@@ -68,9 +68,9 @@ export default function HomeView({ onNavigateToShop, onNavigateToDetail, siteCon
             src={siteConfig.heroImage}
             alt="Parenthood bond carrier"
             referrerPolicy="no-referrer"
-            className="w-full h-full object-cover object-top opacity-[0.75] pointer-events-none"
+            className="w-full h-full object-cover object-top opacity-[0.92] pointer-events-none"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-warm-white/45 to-warm-white" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-warm-white/10 to-warm-white/40" />
         </div>
 
         {/* Narrative Box Floating Content Card */}
