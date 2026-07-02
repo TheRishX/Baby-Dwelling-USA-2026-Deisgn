@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Literata", serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --color-charcoal: #121212;
+  --color-warm-white: #FCFAF7;
+  --color-sand: #D8C3A5;
+  --color-terracotta: #C97C5D;
+  --color-sage: #9CA389;
+  --color-light-beige: #F5EFE7;
+}
+
+/* Custom transitions and animations */
+.glass-panel {
+  background: rgba(252, 250, 247, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .glass-panel {
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8C3A5;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C97C5D;
+}
