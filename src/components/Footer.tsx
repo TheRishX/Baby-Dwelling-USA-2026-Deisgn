@@ -1,4 +1,5 @@
 import { ActiveView } from '../types';
+import { Instagram, Facebook, Pin } from 'lucide-react';
 
 interface FooterProps {
   setActiveView: (view: ActiveView) => void;
@@ -53,14 +54,33 @@ export default function Footer({
               Crafted for gentle luxury. We create ergonomic, aesthetically beautiful and certified baby carriers, wraps, and accessories for the modern parent.
             </p>
             <div className="flex gap-4">
-              {['Instagram', 'Facebook', 'Pinterest'].map((network) => (
-                <span
-                  key={network}
-                  className="w-10 h-10 rounded-full bg-sand/15 hover:bg-sand/30 flex items-center justify-center text-xs font-sans font-medium text-charcoal/80 cursor-pointer hover:text-charcoal transition-colors"
-                >
-                  {network.substring(0, 2).toUpperCase()}
-                </span>
-              ))}
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-10 h-10 rounded-full bg-sand/15 hover:bg-sand/30 flex items-center justify-center text-charcoal/80 hover:text-charcoal transition-colors cursor-pointer"
+                title="Instagram"
+              >
+                <Instagram size={18} />
+              </a>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-10 h-10 rounded-full bg-sand/15 hover:bg-sand/30 flex items-center justify-center text-charcoal/80 hover:text-charcoal transition-colors cursor-pointer"
+                title="Facebook"
+              >
+                <Facebook size={18} />
+              </a>
+              <a
+                href="https://pinterest.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-10 h-10 rounded-full bg-sand/15 hover:bg-sand/30 flex items-center justify-center text-charcoal/80 hover:text-charcoal transition-colors cursor-pointer"
+                title="Pinterest"
+              >
+                <Pin size={18} />
+              </a>
             </div>
           </div>
 
