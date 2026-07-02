@@ -785,6 +785,82 @@ export default function ShopifyCustomizer({
           )}
         </div>
 
+        {/* SECTION: Checkout Redirection Options */}
+        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
+          <button
+            onClick={() => toggleSection('checkout-redirection')}
+            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={14} className="text-[#008060]" />
+              <span>Checkout Redirection Options</span>
+            </div>
+            {openSection === 'checkout-redirection' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          
+          {openSection === 'checkout-redirection' && (
+            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-4 text-left">
+              <p className="text-[11px] text-gray-500 leading-relaxed font-sans">
+                Customize Amazon and Walmart fast-checkout buttons for live cart routing.
+              </p>
+
+              {/* Amazon Checkout Settings */}
+              <div className="bg-gray-50/60 p-3 rounded-lg border border-gray-150 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-700 uppercase">Amazon Redirection</span>
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={siteConfig.enableAmazonCheckout !== false}
+                      onChange={(e) => handleFieldChange('enableAmazonCheckout', e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#008060]"></div>
+                  </label>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400">Amazon Button Text</span>
+                  <input 
+                    type="text" 
+                    value={siteConfig.amazonCheckoutText ?? 'Checkout using Amazon'} 
+                    onChange={(e) => handleFieldChange('amazonCheckoutText', e.target.value)}
+                    disabled={siteConfig.enableAmazonCheckout === false}
+                    className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Walmart Checkout Settings */}
+              <div className="bg-gray-50/60 p-3 rounded-lg border border-gray-150 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-700 uppercase">Walmart Redirection</span>
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={siteConfig.enableWalmartCheckout !== false}
+                      onChange={(e) => handleFieldChange('enableWalmartCheckout', e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#008060]"></div>
+                  </label>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400">Walmart Button Text</span>
+                  <input 
+                    type="text" 
+                    value={siteConfig.walmartCheckoutText ?? 'Checkout using Wal-Mart'} 
+                    onChange={(e) => handleFieldChange('walmartCheckoutText', e.target.value)}
+                    disabled={siteConfig.enableWalmartCheckout === false}
+                    className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Footer Controls: Save & Discard buttons */}

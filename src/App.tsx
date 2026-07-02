@@ -78,6 +78,10 @@ const DEFAULT_CONFIG = {
   products: initialProducts,
   signatureProduct: initialSignatureProduct,
   reviews: initialReviews,
+  enableAmazonCheckout: true,
+  amazonCheckoutText: 'Checkout using Amazon',
+  enableWalmartCheckout: true,
+  walmartCheckoutText: 'Checkout using Wal-Mart',
 };
 
 export default function App() {
@@ -387,6 +391,7 @@ export default function App() {
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}
+          siteConfig={siteConfig}
         />
       </div>
     );
@@ -603,6 +608,7 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onClearCart={handleClearCart}
+        siteConfig={siteConfig}
       />
 
       {/* Shopify Customize Floating Launcher Bar */}

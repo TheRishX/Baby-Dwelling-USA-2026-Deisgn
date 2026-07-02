@@ -220,25 +220,25 @@ export default function ProductDetailView({ productId = 'signature-heritage', on
               <ArrowUpRight size={14} />
             </button>
 
-            {/* Split Retailers */}
+            {/* Split Retailers with elegant boutique theme buttons */}
             <div className="grid grid-cols-2 gap-3 mt-1">
               <a
                 href={product.buyUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-[#FF9900] hover:bg-[#E68A00] text-black font-sans text-[11px] font-bold uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all text-center"
+                className="bg-light-beige hover:bg-sand/35 text-charcoal border border-sand/30 font-sans text-[11px] font-bold uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all text-center"
               >
                 <span>Amazon UK</span>
-                <ExternalLink size={11} />
+                <ExternalLink size={11} className="text-terracotta" />
               </a>
               <a
                 href="https://www.walmart.com"
                 target="_blank"
                 rel="noreferrer"
-                className="bg-[#0071CE] hover:bg-[#005FA3] text-white font-sans text-[11px] font-bold uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all text-center"
+                className="bg-light-beige hover:bg-sand/35 text-charcoal border border-sand/30 font-sans text-[11px] font-bold uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all text-center"
               >
                 <span>Walmart US</span>
-                <ExternalLink size={11} />
+                <ExternalLink size={11} className="text-sage" />
               </a>
             </div>
             
