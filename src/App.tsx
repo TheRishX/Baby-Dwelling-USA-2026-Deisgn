@@ -13,6 +13,17 @@ import ShopifyCustomizer from './components/ShopifyCustomizer';
 import { products as initialProducts, signatureProduct as initialSignatureProduct, reviewsData as initialReviews } from './data';
 import { Settings, Palette } from 'lucide-react';
 import SeoView from './views/SeoView';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
+
+let clientDb: any = null;
+try {
+  const app = initializeApp(firebaseConfig);
+  clientDb = getFirestore(app, firebaseConfig.firestoreDatabaseId || "(default)");
+} catch (error) {
+  console.warn("Failed to initialize Firebase on frontend client:", error);
+}
 
 const DEFAULT_CONFIG = {
   logoText: 'Baby Dwelling',
@@ -137,11 +148,20 @@ export default function App() {
     localStorage.setItem('bd_customizing_mode', String(isCustomizingMode));
   }, [isCustomizingMode]);
 
-  // Fetch site configuration from Express server on mount and poll periodically
+  // Fetch site configuration from Express server on mount and synchronize via real-time Firestore listener
   useEffect(() => {
-    const fetchConfig = async () => {
+    let unsubscribe: () => void = () => {};
+
+    const fetchConfigFromServer = async () => {
       try {
-        const response = await fetch('/api/site-config');
+        // Prevent browser cache by appending a unique timestamp parameter
+        const response = await fetch(`/api/site-config?t=${Date.now()}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         if (!response.ok) return;
         const data = await response.json();
         if (data && data.config) {
@@ -158,18 +178,51 @@ export default function App() {
       }
     };
 
-    fetchConfig();
+    // 1. Initial fresh fetch on mount with absolute cache-busting
+    fetchConfigFromServer();
 
-    // Poll every 3 seconds for live synchronization across other devices
-    const interval = setInterval(() => {
-      // Only auto-update if the user is NOT actively editing/customizing on this device
-      // to avoid overwriting their current unsaved input.
-      if (!isCustomizingMode) {
-        fetchConfig();
+    // 2. Setup Real-time Firebase Firestore synchronization
+    if (clientDb) {
+      try {
+        const docRef = doc(clientDb, "siteConfigs", "baby_dwelling");
+        unsubscribe = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            console.log("⚡ Real-time update received from Firestore:", data);
+            
+            // Only auto-update siteConfig if the admin is NOT actively customizing on this specific device,
+            // to avoid overwriting their active typing/selection.
+            if (!isCustomizingMode) {
+              setSiteConfig(data);
+              localStorage.setItem('bd_site_config_v1', JSON.stringify(data));
+            }
+          }
+        }, (error) => {
+          console.error("Firestore listener error, falling back to polling:", error);
+          // Fallback to active polling if listener fails
+          const interval = setInterval(() => {
+            if (!isCustomizingMode) {
+              fetchConfigFromServer();
+            }
+          }, 3000);
+          unsubscribe = () => clearInterval(interval);
+        });
+      } catch (err) {
+        console.error("Error setting up Firestore listener:", err);
       }
-    }, 3000);
+    } else {
+      // Fallback: active polling
+      const interval = setInterval(() => {
+        if (!isCustomizingMode) {
+          fetchConfigFromServer();
+        }
+      }, 3000);
+      unsubscribe = () => clearInterval(interval);
+    }
 
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribe();
+    };
   }, [isCustomizingMode]);
 
   const saveConfigToBackend = async (newConfig: any) => {
@@ -178,6 +231,9 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({ config: newConfig }),
       });

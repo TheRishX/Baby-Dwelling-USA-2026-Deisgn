@@ -109,8 +109,65 @@ async function loadConfig() {
   return config;
 }
 
+// Helper to update versions only when image URLs actually changed
+function updateConfigImageVersions(oldConfig: any, newConfig: any) {
+  const timestamp = Date.now();
+  
+  // 1. Hero Image
+  if (newConfig.heroImage) {
+    const oldHero = oldConfig?.heroImage || "";
+    // Check if the base URL actually changed (ignoring existing ?v= query parameter)
+    const cleanOld = oldHero.split("?")[0];
+    const cleanNew = newConfig.heroImage.split("?")[0];
+    if (cleanOld !== cleanNew) {
+      newConfig.heroImage = cleanNew.startsWith("data:") ? cleanNew : `${cleanNew}?v=${timestamp}`;
+    }
+  }
+
+  // 2. Logo Image
+  if (newConfig.logoImage) {
+    const oldLogo = oldConfig?.logoImage || "";
+    const cleanOld = oldLogo.split("?")[0];
+    const cleanNew = newConfig.logoImage.split("?")[0];
+    if (cleanOld !== cleanNew) {
+      newConfig.logoImage = cleanNew.startsWith("data:") ? cleanNew : `${cleanNew}?v=${timestamp}`;
+    }
+  }
+
+  // 3. Product Images
+  if (newConfig.products && Array.isArray(newConfig.products)) {
+    newConfig.products.forEach((prod: any, idx: number) => {
+      const oldProd = oldConfig?.products?.[idx];
+      const oldImg = oldProd?.image || "";
+      if (prod.image) {
+        const cleanOld = oldImg.split("?")[0];
+        const cleanNew = prod.image.split("?")[0];
+        if (cleanOld !== cleanNew) {
+          prod.image = cleanNew.startsWith("data:") ? cleanNew : `${cleanNew}?v=${timestamp}`;
+        }
+      }
+    });
+  }
+}
+
 // Helper to save site configuration (Firestore + local backup)
 async function saveConfig(config: any) {
+  // Load existing config to apply differential versioning to changed images
+  let oldConfig: any = null;
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      oldConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+    }
+  } catch (err) {
+    // ignore
+  }
+
+  // Inject a unique version/lastUpdated timestamp
+  config.lastUpdated = Date.now();
+
+  // Apply differential image versioning to auto-invalidate browser and CDN caches
+  updateConfigImageVersions(oldConfig, config);
+
   if (db) {
     try {
       const docRef = doc(db, "siteConfigs", "baby_dwelling");
@@ -167,17 +224,85 @@ async function startServer() {
 
   // API endpoints must go FIRST
   app.get("/api/site-config", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
     const config = await loadConfig();
     res.json({ config });
   });
 
   app.post("/api/site-config", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
     const { config } = req.body;
     if (config) {
       await saveConfig(config);
       res.json({ success: true, config });
     } else {
       res.status(400).json({ error: "Missing config object" });
+    }
+  });
+
+  // Dedicated Enterprise-Level Banner APIs
+  app.get("/api/banner", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
+    try {
+      const config = await loadConfig();
+      res.json({
+        heroImage: config.heroImage,
+        lastUpdated: config.lastUpdated || Date.now()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to fetch banner" });
+    }
+  });
+
+  app.put("/api/banner", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
+    try {
+      const { heroImage } = req.body;
+      if (!heroImage) {
+        return res.status(400).json({ error: "Missing heroImage URL" });
+      }
+
+      const config = await loadConfig();
+      config.heroImage = heroImage;
+      await saveConfig(config);
+
+      res.json({ success: true, heroImage: config.heroImage, lastUpdated: config.lastUpdated });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to update banner" });
+    }
+  });
+
+  app.delete("/api/banner", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
+    try {
+      const config = await loadConfig();
+      // Reset to default premium banner
+      config.heroImage = "https://images.unsplash.com/photo-1544126592-807adc21510d?auto=format&fit=crop&w=2000&q=80";
+      await saveConfig(config);
+
+      res.json({ success: true, heroImage: config.heroImage, lastUpdated: config.lastUpdated });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to reset banner" });
     }
   });
 
