@@ -284,7 +284,7 @@ export default function App() {
         )}
 
         {/* Left Side: Shopify Sidebar Customizer Panel */}
-        <div className="w-[380px] md:w-[400px] h-full flex-shrink-0 z-20">
+        <div className="w-[380px] md:w-[400px] h-full flex-shrink-0 z-20 flex flex-col overflow-hidden">
           <ShopifyCustomizer
             siteConfig={siteConfig}
             onChangeConfig={setSiteConfig}

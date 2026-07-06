@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Storefront customizer configuration",
+      "type": "object",
+      "properties": {
+        "logoText": {
+          "type": "string",
+          "description": "Brand logo text"
+        },
+        "logoImage": {
+          "type": "string",
+          "description": "Optional brand logo image URL or base64"
+        },
+        "heroTagline": {
+          "type": "string",
+          "description": "Hero section tagline"
+        },
+        "heroTitle": {
+          "type": "string",
+          "description": "Hero section main title"
+        },
+        "heroSubtitle": {
+          "type": "string",
+          "description": "Hero section subtitle text"
+        },
+        "heroImage": {
+          "type": "string",
+          "description": "Hero background image URL or base64"
+        },
+        "heroCta1Text": {
+          "type": "string"
+        },
+        "heroCta1Link": {
+          "type": "string"
+        },
+        "heroCta2Text": {
+          "type": "string"
+        },
+        "heroCta2Link": {
+          "type": "string"
+        },
+        "badge1Title": {
+          "type": "string"
+        },
+        "badge1Text": {
+          "type": "string"
+        },
+        "badge2Title": {
+          "type": "string"
+        },
+        "badge2Text": {
+          "type": "string"
+        },
+        "badge3Title": {
+          "type": "string"
+        },
+        "badge3Text": {
+          "type": "string"
+        },
+        "categories": {
+          "type": "array"
+        },
+        "navigation": {
+          "type": "array"
+        },
+        "pages": {
+          "type": "array"
+        },
+        "products": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "siteConfigs/baby_dwelling": {
+      "schema": "SiteConfig",
+      "description": "Storefront customization details"
+    }
+  }
+}

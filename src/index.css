@@ -45,20 +45,24 @@
 }
 
 /* Shopify Customizer Specific High-Visibility Scrollbar */
+.shopify-customizer-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #008060 rgba(0, 0, 0, 0.05);
+}
 .shopify-customizer-scrollbar::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .shopify-customizer-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 6px;
 }
 .shopify-customizer-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 80, 60, 0.25); /* Muted Shopify Green */
-  border: 2px solid transparent;
+  background: #008060; /* Highly visible solid Shopify Green */
+  border: 1.5px solid #F6F6F7;
   border-radius: 6px;
   background-clip: padding-box;
 }
 .shopify-customizer-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #008060; /* Solid Shopify Green */
+  background: #005c44; /* Darker Shopify Green on hover */
 }

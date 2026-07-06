@@ -192,7 +192,7 @@ export default function ShopifyCustomizer({
       </div>
 
       {/* Accordion List with Scrollbar */}
-      <div className="flex-1 overflow-y-auto shopify-customizer-scrollbar p-4 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto shopify-customizer-scrollbar p-4 flex flex-col gap-3">
         
         {/* SECTION: Site Presets & Aesthetics */}
         <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
@@ -287,13 +287,33 @@ export default function ShopifyCustomizer({
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-bold text-gray-400 uppercase">Logo Image URL (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={siteConfig.logoImage ?? ''} 
-                    onChange={(e) => handleFieldChange('logoImage', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-mono"
-                    placeholder="https://example.com/logo.png"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={siteConfig.logoImage ?? ''} 
+                      onChange={(e) => handleFieldChange('logoImage', e.target.value)}
+                      className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-mono flex-1 min-w-0"
+                      placeholder="https://example.com/logo.png"
+                    />
+                    <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
+                      <span>Upload</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              handleFieldChange('logoImage', reader.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
                   <p className="text-[9px] text-gray-400">If provided, this image will replace the text-based brand logo.</p>
                 </div>
               </div>
@@ -392,12 +412,32 @@ export default function ShopifyCustomizer({
               {/* Hero Image Selector URL */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Image URL</label>
-                <input 
-                  type="text" 
-                  value={siteConfig.heroImage || ''} 
-                  onChange={(e) => handleFieldChange('heroImage', e.target.value)}
-                  className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white text-gray-600 font-mono"
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={siteConfig.heroImage || ''} 
+                    onChange={(e) => handleFieldChange('heroImage', e.target.value)}
+                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white text-gray-600 font-mono flex-1 min-w-0"
+                  />
+                  <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
+                    <span>Upload</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            handleFieldChange('heroImage', reader.result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Preset Hero images recommended gallery */}
@@ -774,12 +814,32 @@ export default function ShopifyCustomizer({
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-[8px] font-bold text-gray-400">Featured Image URL</span>
-                          <input 
-                            type="text" 
-                            value={prod.image} 
-                            onChange={(e) => handleNestedFieldChange('products', index, 'image', e.target.value)}
-                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors"
-                          />
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={prod.image} 
+                              onChange={(e) => handleNestedFieldChange('products', index, 'image', e.target.value)}
+                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors flex-1 min-w-0"
+                            />
+                            <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded px-2.5 py-1 text-[9px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
+                              <span>Upload</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                      handleNestedFieldChange('products', index, 'image', reader.result);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className="hidden" 
+                              />
+                            </label>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="flex flex-col gap-1">
