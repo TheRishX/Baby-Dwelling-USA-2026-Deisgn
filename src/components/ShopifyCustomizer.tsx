@@ -27,6 +27,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ActiveView, Product } from '../types';
 import WysiwygEditor from './WysiwygEditor';
+import * as Accordion from '@radix-ui/react-accordion';
 
 // Import our modular subcomponents
 import SidebarAccordion from './customizer/SidebarAccordion';
@@ -341,8 +342,8 @@ export default function ShopifyCustomizer({
               <option value="shop">Shop All Collections</option>
               <option value="detail">Product Detail Page</option>
               <optgroup label="Custom Standalone Pages">
-                {(siteConfig.pages || []).map((p: any) => (
-                  <option key={p.id} value={`page:${p.slug}`}>{p.title}</option>
+                {(siteConfig.pages || []).map((p: any, idx: number) => (
+                  <option key={`cust-opt-p-${p.id || idx}-${idx}`} value={`page:${p.slug}`}>{p.title}</option>
                 ))}
               </optgroup>
             </select>
@@ -374,9 +375,19 @@ export default function ShopifyCustomizer({
         </div>
       </div>
 
-      {/* 3. SCROLLABLE ACCORDION CONTAINER */}
-      <div className="flex-1 min-h-0 overflow-y-auto shopify-customizer-scrollbar p-4 flex flex-col gap-3">
-        <AnimatePresence mode="popLayout">
+      {/* 3. ACCORDION CONTAINER */}
+      <div className="flex-1 min-h-0 p-4 bg-[#F9F9FB] dark:bg-[#121214] overflow-y-auto shopify-customizer-scrollbar flex flex-col">
+        <Accordion.Root
+          type={searchQuery ? "multiple" : "single"}
+          collapsible={true}
+          value={searchQuery ? undefined : (openSection || undefined)}
+          onValueChange={(val) => {
+            if (!searchQuery) {
+              setOpenSection(Array.isArray(val) ? val[0] : val || null);
+            }
+          }}
+          className="flex flex-col gap-3 w-full"
+        >
           
           {/* SECTION: SITE PRESETS & AESTHETICS */}
           {filteredSections.some(s => s.id === 'aesthetics') && (
@@ -495,7 +506,7 @@ export default function ShopifyCustomizer({
                   <span className="text-[10px] font-bold text-gray-400 uppercase select-none">Top Header Menu Links</span>
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1">
                     {(siteConfig.navigation || []).map((navItem: any, index: number) => (
-                      <div key={index} className="flex gap-2 items-center bg-white dark:bg-black/20 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
+                      <div key={`cust-nav-${index}`} className="flex gap-2 items-center bg-white dark:bg-black/20 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
                         <input 
                           type="text" 
                           value={navItem.label} 
@@ -511,8 +522,8 @@ export default function ShopifyCustomizer({
                           <option value="home">Home</option>
                           <option value="shop">Shop All</option>
                           <option value="detail">Signature Product</option>
-                          {(siteConfig.pages || []).map((page: any) => (
-                            <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
+                          {(siteConfig.pages || []).map((page: any, idx: number) => (
+                            <option key={`cust-nav-opt-${page.id || idx}-${idx}`} value={`page:${page.slug}`}>Page: {page.title}</option>
                           ))}
                         </select>
                         <button 
@@ -737,7 +748,7 @@ export default function ShopifyCustomizer({
                 
                 <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1">
                   {(siteConfig.categories || []).map((cat: any, index: number) => (
-                    <div key={cat.id} className="flex gap-2 items-center bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
+                    <div key={`cust-cat-${cat.id || index}-${index}`} className="flex gap-2 items-center bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
                       <div className="flex-1 flex flex-col gap-1.5 text-left">
                         <label className="text-[8px] font-bold text-gray-400 uppercase">Collection Name</label>
                         <input 
@@ -799,7 +810,7 @@ export default function ShopifyCustomizer({
                 
                 <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto shopify-customizer-scrollbar pr-1">
                   {(siteConfig.pages || []).map((page: any, index: number) => (
-                    <div key={page.id} className="border border-gray-150 dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3 shadow-sm text-left">
+                    <div key={`cust-page-${page.id || index}-${index}`} className="border border-[#E1E3E5] dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3 shadow-sm text-left">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-[#008060]">Page: {page.title}</span>
                         <button 
@@ -886,7 +897,7 @@ export default function ShopifyCustomizer({
 
               <div className="flex flex-col gap-3 max-h-[450px] overflow-y-auto shopify-customizer-scrollbar pr-1">
                 {(siteConfig.products || []).map((prod: Product, index: number) => (
-                  <div key={prod.id} className="border border-gray-150 dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3.5 shadow-sm">
+                  <div key={`cust-prod-${prod.id || index}-${index}`} className="border border-gray-150 dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3.5 shadow-sm">
                     <div className="flex justify-between items-center text-left">
                       <span className="text-xs font-bold truncate max-w-[170px] text-gray-800 dark:text-gray-200">{prod.title}</span>
                       <button
@@ -1033,7 +1044,7 @@ export default function ShopifyCustomizer({
             </SidebarAccordion>
           )}
 
-        </AnimatePresence>
+        </Accordion.Root>
       </div>
 
       {/* 4. STATIC FOOTER ACTIONS CONTROLS */}

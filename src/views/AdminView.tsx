@@ -643,13 +643,13 @@ export default function AdminView({
                             { id: 'pouches', name: 'Wraps & Pouches' },
                             { id: 'combos', name: 'Bundles & Combos' },
                             { id: 'accessories', name: 'Accessories' }
-                          ]).filter((cat: any) => cat.id !== 'all').map((cat: any) => (
-                            <option key={cat.id} value={`shop:${cat.id}`}>Category: {cat.name}</option>
+                          ]).filter((cat: any) => cat.id !== 'all').map((cat: any, idx: number) => (
+                            <option key={`hero-cta1-cat-${cat.id || idx}-${idx}`} value={`shop:${cat.id}`}>Category: {cat.name}</option>
                           ))}
                         </optgroup>
                         <optgroup label="Custom Pages">
-                          {(siteConfig.pages || []).map((page: any) => (
-                            <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
+                          {(siteConfig.pages || []).map((page: any, idx: number) => (
+                            <option key={`hero-cta1-page-${page.id || idx}-${idx}`} value={`page:${page.slug}`}>Page: {page.title}</option>
                           ))}
                         </optgroup>
                       </select>
@@ -683,13 +683,13 @@ export default function AdminView({
                             { id: 'pouches', name: 'Wraps & Pouches' },
                             { id: 'combos', name: 'Bundles & Combos' },
                             { id: 'accessories', name: 'Accessories' }
-                          ]).filter((cat: any) => cat.id !== 'all').map((cat: any) => (
-                            <option key={cat.id} value={`shop:${cat.id}`}>Category: {cat.name}</option>
+                          ]).filter((cat: any) => cat.id !== 'all').map((cat: any, idx: number) => (
+                            <option key={`hero-cta2-cat-${cat.id || idx}-${idx}`} value={`shop:${cat.id}`}>Category: {cat.name}</option>
                           ))}
                         </optgroup>
                         <optgroup label="Custom Pages">
-                          {(siteConfig.pages || []).map((page: any) => (
-                            <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
+                          {(siteConfig.pages || []).map((page: any, idx: number) => (
+                            <option key={`hero-cta2-page-${page.id || idx}-${idx}`} value={`page:${page.slug}`}>Page: {page.title}</option>
                           ))}
                         </optgroup>
                       </select>
@@ -965,8 +965,8 @@ export default function AdminView({
                           { id: 'pouches', name: 'Pouches & Wraps' },
                           { id: 'combos', name: 'Bundles & Combos' },
                           { id: 'accessories', name: 'Accessories' }
-                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any) => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any, idx: number) => (
+                          <option key={`new-prod-cat-${cat.id || idx}-${idx}`} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>
                     </div>
@@ -1158,8 +1158,8 @@ export default function AdminView({
                           { id: 'pouches', name: 'Pouches & Wraps' },
                           { id: 'combos', name: 'Bundles & Combos' },
                           { id: 'accessories', name: 'Accessories' }
-                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any) => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any, idx: number) => (
+                          <option key={`edit-prod-cat-${cat.id || idx}-${idx}`} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>
                     </div>
@@ -1650,8 +1650,8 @@ export default function AdminView({
                           </td>
                         </tr>
                       ) : (
-                        (siteConfig.pages || []).map((page: any) => (
-                          <tr key={page.id} className="border-b border-[#E1E3E5] hover:bg-gray-50 transition-colors">
+                        (siteConfig.pages || []).map((page: any, idx: number) => (
+                          <tr key={`admin-tbl-page-${page.id || idx}-${idx}`} className="border-b border-[#E1E3E5] hover:bg-gray-50 transition-colors">
                             <td className="p-4 font-bold text-gray-800 text-left">{page.title}</td>
                             <td className="p-4 font-mono text-gray-500 text-left">/page/{page.slug}</td>
                             <td className="p-4 text-gray-500 text-left">{page.createdAt}</td>
@@ -1729,13 +1729,13 @@ export default function AdminView({
                           { id: 'pouches', name: 'Wraps & Pouches' },
                           { id: 'combos', name: 'Bundles & Combos' },
                           { id: 'accessories', name: 'Accessories' }
-                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any) => (
-                          <option key={cat.id} value={`shop:${cat.id}`}>Category: {cat.name}</option>
+                        ]).filter((cat: any) => cat.id !== 'all').map((cat: any, idx: number) => (
+                          <option key={`new-nav-cat-${cat.id || idx}-${idx}`} value={`shop:${cat.id}`}>Category: {cat.name}</option>
                         ))}
                       </optgroup>
                       <optgroup label="Custom Pages">
-                        {(siteConfig.pages || []).map((page: any) => (
-                          <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
+                        {(siteConfig.pages || []).map((page: any, idx: number) => (
+                          <option key={`new-nav-page-${page.id || idx}-${idx}`} value={`page:${page.slug}`}>Page: {page.title}</option>
                         ))}
                       </optgroup>
                     </select>

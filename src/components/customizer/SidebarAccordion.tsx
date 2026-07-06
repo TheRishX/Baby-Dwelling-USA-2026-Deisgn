@@ -1,12 +1,12 @@
 import { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import * as Accordion from '@radix-ui/react-accordion';
 import { ChevronRight } from 'lucide-react';
 
 interface SidebarAccordionProps {
   id: string;
   title: string;
-  isOpen: boolean;
-  onToggle: () => void;
+  isOpen?: boolean; // Maintained for fallback, but styled natively
+  onToggle?: () => void;
   icon: ReactNode;
   children: ReactNode;
 }
@@ -20,53 +20,40 @@ export default function SidebarAccordion({
   children,
 }: SidebarAccordionProps) {
   return (
-    <div 
+    <Accordion.Item
+      value={id}
       id={`accordion-${id}`}
-      className={`border rounded-xl bg-white dark:bg-[#1C1C1E] transition-all duration-200 overflow-hidden ${
-        isOpen 
-          ? 'border-[#008060] shadow-md ring-1 ring-[#008060]/20' 
-          : 'border-[#E1E3E5] hover:border-gray-300 dark:border-[#2C2C2E] dark:hover:border-gray-700 shadow-sm'
-      }`}
+      className="border rounded-xl bg-white dark:bg-[#1C1C1E] transition-all duration-200 overflow-hidden flex flex-col border-[#E1E3E5] dark:border-[#2C2C2E] hover:border-gray-300 dark:hover:border-gray-700 shadow-sm data-[state=open]:border-[#008060] data-[state=open]:shadow-md data-[state=open]:ring-1 data-[state=open]:ring-[#008060]/20"
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        aria-controls={`accordion-panel-${id}`}
-        className="w-full px-4 py-3.5 flex items-center justify-between text-left font-sans font-semibold text-xs tracking-wide text-charcoal dark:text-warm-white transition-colors cursor-pointer select-none"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`p-1.5 rounded-lg transition-colors ${isOpen ? 'bg-[#008060]/10 text-[#008060]' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-            {icon}
-          </div>
-          <span className="font-sans font-semibold text-sm text-gray-800 dark:text-gray-200">{title}</span>
-        </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 90 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-gray-400"
+      <Accordion.Header className="flex flex-shrink-0">
+        <Accordion.Trigger
+          type="button"
+          onClick={onToggle}
+          className="w-full px-4 py-3.5 flex items-center justify-between text-left font-sans font-semibold text-xs tracking-wide text-charcoal dark:text-warm-white transition-colors cursor-pointer select-none group"
         >
-          <ChevronRight size={16} />
-        </motion.div>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            id={`accordion-panel-${id}`}
-            role="region"
-            aria-labelledby={`accordion-${id}`}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-          >
-            <div className="p-4 border-t border-[#E1E3E5] dark:border-[#2C2C2E] bg-gray-50/50 dark:bg-black/10">
-              {children}
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-lg transition-colors bg-gray-100 dark:bg-gray-800 text-gray-500 group-data-[state=open]:bg-[#008060]/10 group-data-[state=open]:text-[#008060]">
+              {icon}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            <span className="font-sans font-semibold text-sm text-gray-800 dark:text-gray-200">{title}</span>
+          </div>
+          <div
+            className="text-gray-400 transition-transform duration-200 group-data-[state=open]:rotate-90"
+          >
+            <ChevronRight size={16} />
+          </div>
+        </Accordion.Trigger>
+      </Accordion.Header>
+
+      <Accordion.Content
+        id={`accordion-panel-${id}`}
+        className="overflow-hidden border-t border-[#E1E3E5] dark:border-[#2C2C2E] bg-gray-50/50 dark:bg-black/10 data-[state=open]:animate-fadeIn"
+      >
+        <div className="p-4 overflow-y-auto max-h-[500px] md:max-h-[550px] shopify-customizer-scrollbar flex flex-col gap-4 text-left">
+          {children}
+        </div>
+      </Accordion.Content>
+    </Accordion.Item>
   );
 }
+
