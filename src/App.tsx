@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, CartItem, ActiveView } from './types';
 import Navbar from './components/Navbar';
@@ -111,6 +111,9 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
   });
 
+  const isInitialMount = useRef(true);
+  const previousConfigRef = useRef(JSON.stringify(siteConfig));
+
   // Admin Session Login State
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     return localStorage.getItem('bd_admin_logged_in') === 'true';
@@ -182,6 +185,36 @@ export default function App() {
       console.error('Error saving config to server:', err);
     }
   };
+
+  // Debounce saving config to backend when siteConfig changes (only in Customizing Mode)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (!isCustomizingMode) {
+      previousConfigRef.current = JSON.stringify(siteConfig);
+      return;
+    }
+
+    const currentStr = JSON.stringify(siteConfig);
+    if (currentStr === previousConfigRef.current) {
+      return;
+    }
+
+    // Save to localStorage immediately so user's active progress is safe locally
+    localStorage.setItem('bd_site_config_v1', currentStr);
+    previousConfigRef.current = currentStr;
+
+    // Set a debounce timer to save to backend in 800ms to avoid flooding backend/Firestore
+    const timer = setTimeout(() => {
+      console.log('Auto-saving updated customizer settings to live backend (debounced)...');
+      saveConfigToBackend(siteConfig);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [siteConfig, isCustomizingMode]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);

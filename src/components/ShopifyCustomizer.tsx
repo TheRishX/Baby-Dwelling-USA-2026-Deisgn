@@ -55,6 +55,52 @@ export default function ShopifyCustomizer({
 }: ShopifyCustomizerProps) {
   const [openSection, setOpenSection] = useState<string | null>('hero');
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  const handleFileUpload = async (file: File, fieldKey: string, index?: number) => {
+    const keyIdentifier = index !== undefined ? `${fieldKey}-${index}` : fieldKey;
+    setUploadingField(keyIdentifier);
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image: reader.result,
+              name: file.name
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Upload failed');
+          }
+          
+          const data = await response.json();
+          if (data && data.url) {
+            if (index !== undefined) {
+              handleNestedFieldChange(fieldKey, index, 'image', data.url);
+            } else {
+              handleFieldChange(fieldKey, data.url);
+            }
+          }
+        } catch (err) {
+          console.error("Error uploading file online:", err);
+          alert("Failed to upload image online. Please try another image.");
+        } finally {
+          setUploadingField(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setUploadingField(null);
+    }
+  };
 
   const toggleSection = (section: string) => {
     setOpenSection(openSection === section ? null : section);
@@ -86,23 +132,23 @@ export default function ShopifyCustomizer({
     handleFieldChange(parentKey, list);
   };
 
-  // Preset images recommended for baby slings / carriers
+  // Preset images recommended for baby slings / carriers (high-quality Unsplash)
   const PRESET_IMAGES = [
     {
       name: 'Signature Linen Cream',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAjUGZLXpNyFq8eljDX0MSFwUqLu0nP9QxWQhGuXEjeKOCi36I__npWPkI5my2jneyHJpmFJ0TP6-eg7Qt0Gq7VMb-Cet5YDlJSGVe0Ysx42YRQjOVvrJqqq4niUBZsgAEOM7pDESTwufwBXAM_ukbWo78H5o4lJrMeS2fJSYN9xNCcU5L47rf2w7uydTUMyhi-RiaXM-UbM2bbECDLCP18_2r3D5rbhxJFEnDtKqOYoCJoUq1LohewJ-1TbT91-zK9s1VpWDxtzmo',
+      url: 'https://images.unsplash.com/photo-1544126592-807adc21510d?auto=format&fit=crop&w=2000&q=80',
     },
     {
       name: 'Earthy Sage Green',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAO7QnYkRNpbxSypcRESvTyvVK4rFPqh9BT3mC3WChvyHSPlYNY0lqGM9hw-G9WktZRmzqyViVoDKW_NDs7rripCZrfhMsUzaEbXYTgyiThPnW3oL-M5hCS3Inj5VCJNOYRjmDFOw2HAhQXmLUzql1TfhQVuL8qjKc467NBrfEqwrJ6SAXPWvvP6DT3pNSO6f5JInnzJTnjH6CW3e7hBzEhP08J8-wPRoIR4kkQZa_WhFFYs52ReUzoSPoFcuYWn3sneqwG-dRo8BE',
+      url: 'https://images.unsplash.com/photo-1596464716127-f2a82984de30?auto=format&fit=crop&w=2000&q=80',
     },
     {
       name: 'Oatmeal Tweed Carrier',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWWBd9xbi8sJ5zXUsdnBU50R5cZsKdjtPfYS8XGrhpvAlmIfe_54yIAXb7Z1Lg2sLgJvhv4P38lIKKowcVNm6PB_mbbD8PW4V5mPO8GC9dZLW4QkTy3byFsWKrcDB1nRtSM88KtVaN7kY1bllFvNB-QpE7b4WhlH-iB_hVwPQZTMkr2pMcrNUaUZ2b8_Vvfw5tEtq4PYrh6gx65y1gkj_nZEafninbKvKgG2cimlRhCLhfj5Aos55aT37UpVCJ-cCuGVuCYzBZRSM',
+      url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=2000&q=80',
     },
     {
       name: 'Supportive Bonding',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC2Piw4J1xyoTlo5PGRSLjIISiFjyiPgMDlCYZn_jWcfZfK4mjePiBtpaOlkUdVfFc2CL3Jk66_BDlQQARD9aBAorecrOG_Q_kRZ1LFZFmrLdIw1YkOnGkS05K6PEJakq1rPQExw_6GbIH_ckRcEU0OyoDRTRHU6HYq7jiK4aR-b79qEgiWph_gECwsAsaLNc9ljjOGevOxt78Ds34LFBNSnDT6wop79rqU0QB28I72tqUOO_9dJuIWJbL1s9TkdX8M4pWH7l0eOGI',
+      url: 'https://images.unsplash.com/photo-1519689680058-324335c77ebe?auto=format&fit=crop&w=2000&q=80',
     }
   ];
 
@@ -295,19 +341,16 @@ export default function ShopifyCustomizer({
                       className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-mono flex-1 min-w-0"
                       placeholder="https://example.com/logo.png"
                     />
-                    <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
-                      <span>Upload</span>
+                    <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[70px]">
+                      <span>{uploadingField === 'logoImage' ? 'Uploading...' : 'Upload'}</span>
                       <input 
                         type="file" 
                         accept="image/*" 
+                        disabled={uploadingField !== null}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                              handleFieldChange('logoImage', reader.result);
-                            };
-                            reader.readAsDataURL(file);
+                            handleFileUpload(file, 'logoImage');
                           }
                         }}
                         className="hidden" 
@@ -378,7 +421,7 @@ export default function ShopifyCustomizer({
           </button>
           
           {openSection === 'hero' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
+            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left max-h-[450px] overflow-y-auto shopify-customizer-scrollbar">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Tagline</label>
                 <input 
@@ -419,19 +462,16 @@ export default function ShopifyCustomizer({
                     onChange={(e) => handleFieldChange('heroImage', e.target.value)}
                     className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white text-gray-600 font-mono flex-1 min-w-0"
                   />
-                  <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
-                    <span>Upload</span>
+                  <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[70px]">
+                    <span>{uploadingField === 'heroImage' ? 'Uploading...' : 'Upload'}</span>
                     <input 
                       type="file" 
                       accept="image/*" 
+                      disabled={uploadingField !== null}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = () => {
-                            handleFieldChange('heroImage', reader.result);
-                          };
-                          reader.readAsDataURL(file);
+                          handleFileUpload(file, 'heroImage');
                         }
                       }}
                       className="hidden" 
@@ -821,19 +861,16 @@ export default function ShopifyCustomizer({
                               onChange={(e) => handleNestedFieldChange('products', index, 'image', e.target.value)}
                               className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors flex-1 min-w-0"
                             />
-                            <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded px-2.5 py-1 text-[9px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0">
-                              <span>Upload</span>
+                            <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded px-2.5 py-1 text-[9px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[75px]">
+                              <span>{uploadingField === `products-${index}` ? 'Uploading...' : 'Upload'}</span>
                               <input 
                                 type="file" 
                                 accept="image/*" 
+                                disabled={uploadingField !== null}
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = () => {
-                                      handleNestedFieldChange('products', index, 'image', reader.result);
-                                    };
-                                    reader.readAsDataURL(file);
+                                    handleFileUpload(file, 'products', index);
                                   }
                                 }}
                                 className="hidden" 
