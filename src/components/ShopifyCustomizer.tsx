@@ -6,25 +6,39 @@ import {
   Monitor, 
   Smartphone, 
   Tablet as TabletIcon, 
-  ChevronDown, 
-  ChevronUp, 
-  Layout, 
-  Type, 
-  Grid, 
-  ShoppingBag, 
   Plus, 
   Trash2, 
-  BookOpen, 
-  FileText, 
-  Settings,
-  DollarSign,
+  Eye, 
+  Search,
   Palette,
-  Eye,
   Menu,
-  HelpCircle
+  Layout,
+  Type,
+  Grid,
+  BookOpen,
+  ShoppingBag,
+  FileText,
+  Sliders,
+  Settings,
+  ChevronRight,
+  Info,
+  Check
 } from 'lucide-react';
-import { ActiveView, Product, CustomPage } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+import { ActiveView, Product } from '../types';
 import WysiwygEditor from './WysiwygEditor';
+
+// Import our modular subcomponents
+import SidebarAccordion from './customizer/SidebarAccordion';
+import SidebarTabs from './customizer/SidebarTabs';
+import ImageUploader from './customizer/ImageUploader';
+import { 
+  SettingInput, 
+  SettingTextarea, 
+  CustomSwitch, 
+  ColorPicker, 
+  SettingGroup 
+} from './customizer/SettingComponents';
 
 interface ShopifyCustomizerProps {
   siteConfig: any;
@@ -53,9 +67,30 @@ export default function ShopifyCustomizer({
   currentPageSlug,
   onChangePageSlug,
 }: ShopifyCustomizerProps) {
+  // Navigation tabs for sections that have deep settings
+  const [aestheticsTab, setAestheticsTab] = useState<string>('presets');
+  const [headerTab, setHeaderTab] = useState<string>('logo');
+  const [heroTab, setHeroTab] = useState<string>('content');
+  const [productsTab, setProductsTab] = useState<string>('price');
+  const [checkoutTab, setCheckoutTab] = useState<string>('amazon');
+
   const [openSection, setOpenSection] = useState<string | null>('hero');
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Mobile Drawer responsiveness states
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleFileUpload = async (file: File, fieldKey: string, index?: number) => {
     const keyIdentifier = index !== undefined ? `${fieldKey}-${index}` : fieldKey;
@@ -132,7 +167,7 @@ export default function ShopifyCustomizer({
     handleFieldChange(parentKey, list);
   };
 
-  // Preset images recommended for baby slings / carriers (high-quality Unsplash)
+  // Recommended high-quality Unsplash image presets
   const PRESET_IMAGES = [
     {
       name: 'Signature Linen Cream',
@@ -152,845 +187,860 @@ export default function ShopifyCustomizer({
     }
   ];
 
-  return (
-    <div className="w-full h-full bg-[#F6F6F7] border-r border-[#E1E3E5] flex flex-col font-sans text-charcoal shadow-lg">
+  // Definition of customizer accordion sections
+  const ACCORDION_SECTIONS = [
+    {
+      id: 'aesthetics',
+      title: 'Theme Settings & Colors',
+      icon: <Palette size={16} />,
+      keywords: ['preset', 'theme', 'colors', 'font', 'design', 'style', 'brand', 'sage', 'linen', 'comfort', 'meadow'],
+    },
+    {
+      id: 'navigation',
+      title: 'Header Navigation',
+      icon: <Menu size={16} />,
+      keywords: ['menu', 'header', 'links', 'logo', 'brand', 'navigation', 'nav'],
+    },
+    {
+      id: 'hero',
+      title: 'Hero Banner',
+      icon: <Layout size={16} />,
+      keywords: ['hero', 'banner', 'title', 'subtitle', 'tagline', 'cta', 'image', 'button'],
+    },
+    {
+      id: 'badges',
+      title: 'Trust Badges Section',
+      icon: <Type size={16} />,
+      keywords: ['trust', 'badges', 'certified', 'shipping', 'delivery', 'materials', 'support'],
+    },
+    {
+      id: 'categories',
+      title: 'Collections',
+      icon: <Grid size={16} />,
+      keywords: ['collections', 'categories', 'shop', 'routing', 'id', 'category'],
+    },
+    {
+      id: 'products',
+      title: 'Products & Pricing',
+      icon: <ShoppingBag size={16} />,
+      keywords: ['products', 'price', 'pricing', 'specs', 'msrp', 'rating', 'image', 'title', 'buy', 'affiliate'],
+    },
+    {
+      id: 'pages',
+      title: 'standalone custom pages',
+      icon: <BookOpen size={16} />,
+      keywords: ['pages', 'policy', 'sizing', 'about', 'standalone', 'custom pages'],
+    },
+    {
+      id: 'checkout-redirection',
+      title: 'Checkout Redirection',
+      icon: <FileText size={16} />,
+      keywords: ['checkout', 'redirection', 'amazon', 'walmart', 'button text'],
+    }
+  ];
+
+  // Smart search filtering
+  const filteredSections = ACCORDION_SECTIONS.filter(sec => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      sec.title.toLowerCase().includes(query) ||
+      sec.keywords.some(keyword => keyword.toLowerCase().includes(query))
+    );
+  });
+
+  // Determines whether an accordion section should be open
+  const isSectionOpen = (sectionId: string) => {
+    if (searchQuery) {
+      // Auto expand matching sections when searching so the user instantly finds what they need!
+      return filteredSections.some(sec => sec.id === sectionId);
+    }
+    return openSection === sectionId;
+  };
+
+  const SidebarContentMarkup = (
+    <div className="w-full h-full flex flex-col bg-[#F9F9FB] dark:bg-[#121214] overflow-hidden">
       
-      {/* Customizer Top Header */}
-      <div className="p-4 bg-white border-b border-[#E1E3E5] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-[#008060] flex items-center justify-center text-white font-bold text-sm">S</div>
+      {/* 1. BRAND HEADER */}
+      <div className="p-4 bg-white dark:bg-[#1C1C1E] border-b border-[#E1E3E5] dark:border-gray-800 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-[#008060] flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-[#008060]/20">S</div>
           <div>
-            <h1 className="text-xs font-bold uppercase tracking-wider text-[#121212]">Theme Customizer</h1>
-            <p className="text-[10px] text-gray-500 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse"></span>
-              Live Store Editor
+            <h1 className="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">Shopify Customizer</h1>
+            <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#008060] inline-block animate-pulse"></span>
+              Live Storefront Editor
             </p>
           </div>
         </div>
-        <button 
-          onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors"
-          title="Exit Live Customizer"
-        >
-          <X size={16} />
-        </button>
+        
+        {isMobile ? (
+          <button 
+            onClick={() => setIsDrawerOpen(false)}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 transition-colors"
+            title="Minimize Panel"
+          >
+            <X size={16} />
+          </button>
+        ) : (
+          <button 
+            onClick={onClose}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 transition-colors"
+            title="Exit Customizer"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Control Strip (View selection & Device switches) */}
-      <div className="p-3 bg-white border-b border-[#E1E3E5] flex flex-wrap gap-2 items-center justify-between">
-        
-        {/* Dynamic Page Target selector */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-gray-400 uppercase">Page:</span>
-          <select 
-            value={
-              activePreviewView === 'page' 
-                ? `page:${currentPageSlug}` 
-                : activePreviewView
-            }
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val.startsWith('page:')) {
-                const slug = val.replace('page:', '');
-                onChangePageSlug(slug);
-                onChangePreviewView('page');
-              } else {
-                onChangePreviewView(val as ActiveView);
+      {/* 2. LIVE SEARCH & GLOBAL PREVIEW TARGET CONTROLS */}
+      <div className="p-4 bg-white dark:bg-[#1C1C1E] border-b border-[#E1E3E5] dark:border-gray-800 flex flex-col gap-3">
+        {/* Shopify Instant Search Box */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search storefront settings..."
+            className="w-full pl-9 pr-8 py-2 border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-black rounded-lg text-xs outline-none focus:border-[#008060] focus:ring-1 focus:ring-[#008060]/20 transition-all font-semibold text-gray-700 dark:text-gray-200"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Preview Device & Target Page Switchers */}
+        <div className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-black p-2 rounded-lg border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-gray-400 uppercase select-none">View:</span>
+            <select 
+              value={
+                activePreviewView === 'page' 
+                  ? `page:${currentPageSlug}` 
+                  : activePreviewView
               }
-            }}
-            className="border border-[#C9CCCF] rounded bg-white text-xs px-2 py-1 outline-none font-semibold text-charcoal/90 hover:border-gray-400 transition-all cursor-pointer"
-          >
-            <option value="home">Home Page (Story)</option>
-            <option value="shop">Shop Collections</option>
-            <option value="detail">Product Detail Page</option>
-            <optgroup label="Custom Pages">
-              {(siteConfig.pages || []).map((p: any) => (
-                <option key={p.id} value={`page:${p.slug}`}>{p.title}</option>
-              ))}
-            </optgroup>
-          </select>
-        </div>
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.startsWith('page:')) {
+                  const slug = val.replace('page:', '');
+                  onChangePageSlug(slug);
+                  onChangePreviewView('page');
+                } else {
+                  onChangePreviewView(val as ActiveView);
+                }
+              }}
+              className="border border-[#C9CCCF] dark:border-gray-800 rounded bg-white dark:bg-black text-[11px] px-2 py-1 outline-none font-bold text-gray-700 dark:text-gray-300 hover:border-gray-400 transition-all cursor-pointer"
+            >
+              <option value="home">Home Page (Story)</option>
+              <option value="shop">Shop All Collections</option>
+              <option value="detail">Product Detail Page</option>
+              <optgroup label="Custom Standalone Pages">
+                {(siteConfig.pages || []).map((p: any) => (
+                  <option key={p.id} value={`page:${p.slug}`}>{p.title}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
 
-        {/* Device Viewport Selector */}
-        <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 border border-gray-200">
-          <button
-            onClick={() => onChangePreviewDevice('desktop')}
-            className={`p-1 rounded transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
-            title="Desktop View"
-          >
-            <Monitor size={14} />
-          </button>
-          <button
-            onClick={() => onChangePreviewDevice('tablet')}
-            className={`p-1 rounded transition-all ${previewDevice === 'tablet' ? 'bg-white shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
-            title="Tablet View"
-          >
-            <TabletIcon size={14} />
-          </button>
-          <button
-            onClick={() => onChangePreviewDevice('mobile')}
-            className={`p-1 rounded transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
-            title="Mobile View"
-          >
-            <Smartphone size={14} />
-          </button>
+          <div className="flex items-center gap-0.5 bg-gray-200 dark:bg-gray-800 rounded-md p-0.5">
+            <button
+              onClick={() => onChangePreviewDevice('desktop')}
+              className={`p-1 rounded transition-all cursor-pointer ${previewDevice === 'desktop' ? 'bg-white dark:bg-black shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
+              title="Desktop View"
+            >
+              <Monitor size={13} />
+            </button>
+            <button
+              onClick={() => onChangePreviewDevice('tablet')}
+              className={`p-1 rounded transition-all cursor-pointer ${previewDevice === 'tablet' ? 'bg-white dark:bg-black shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
+              title="Tablet View"
+            >
+              <TabletIcon size={13} />
+            </button>
+            <button
+              onClick={() => onChangePreviewDevice('mobile')}
+              className={`p-1 rounded transition-all cursor-pointer ${previewDevice === 'mobile' ? 'bg-white dark:bg-black shadow-sm text-[#008060]' : 'text-gray-500 hover:text-gray-900'}`}
+              title="Mobile View"
+            >
+              <Smartphone size={13} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Accordion List with Scrollbar */}
+      {/* 3. SCROLLABLE ACCORDION CONTAINER */}
       <div className="flex-1 min-h-0 overflow-y-auto shopify-customizer-scrollbar p-4 flex flex-col gap-3">
-        
-        {/* SECTION: Site Presets & Aesthetics */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('aesthetics')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Palette size={14} className="text-[#008060]" />
-              <span>Theme Presets & Brand Colors</span>
-            </div>
-            {openSection === 'aesthetics' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
+        <AnimatePresence mode="popLayout">
           
-          {openSection === 'aesthetics' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
-              <p className="text-[11px] text-gray-500 leading-relaxed font-sans">
-                Quickly adjust the global theme layout aesthetic:
-              </p>
-              
-              {/* Theme Selector presets */}
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Update global styling colors if desired, or set preset flag
-                    alert('Theme Preset "Linen Comfort" active! Generates elegant soft warm tones on background.');
-                  }}
-                  className="p-2.5 border border-amber-200 bg-[#FCFAF7] hover:border-amber-400 rounded-lg text-left transition-all active:scale-95"
-                >
-                  <span className="block font-bold text-xs text-[#121212]">Linen Comfort</span>
-                  <span className="text-[9px] text-gray-500 block">Soft Oatmeal & Cream</span>
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => {
-                    alert('Theme Preset "Sage Meadow" active! Introduces calming organic sage green accents.');
-                  }}
-                  className="p-2.5 border border-gray-200 bg-white hover:border-[#008060]/40 rounded-lg text-left transition-all active:scale-95"
-                >
-                  <span className="block font-bold text-xs text-[#121212]">Sage Meadow</span>
-                  <span className="text-[9px] text-gray-500 block">Fresh Herbaceous Tones</span>
-                </button>
-              </div>
+          {/* SECTION: SITE PRESETS & AESTHETICS */}
+          {filteredSections.some(s => s.id === 'aesthetics') && (
+            <SidebarAccordion
+              id="aesthetics"
+              title="Theme Presets & Colors"
+              isOpen={isSectionOpen('aesthetics')}
+              onToggle={() => toggleSection('aesthetics')}
+              icon={<Palette size={14} />}
+            >
+              <SidebarTabs
+                activeTab={aestheticsTab}
+                onChangeTab={setAestheticsTab}
+                tabs={[
+                  { id: 'presets', label: 'Presets' },
+                  { id: 'typography', label: 'Typography' },
+                ]}
+              />
 
-              {/* Theme Font indicators */}
-              <div className="flex flex-col gap-1 mt-2">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Primary Serif Display Font</span>
-                <div className="p-2 bg-gray-50 rounded-lg font-serif text-sm font-bold border border-gray-100">
-                  Literata (Elegance & Storytelling)
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-1 mt-1">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Primary Sans Body Font</span>
-                <div className="p-2 bg-gray-50 rounded-lg font-sans text-xs font-semibold border border-gray-100">
-                  Plus Jakarta Sans (Crisp Readability)
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION: Top Navigation Header */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('navigation')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Menu size={14} className="text-[#008060]" />
-              <span>Header Menu Navigation</span>
-            </div>
-            {openSection === 'navigation' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'navigation' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
-              {/* Brand Logo Settings */}
-              <div className="border-b border-gray-150 pb-4 mb-2 flex flex-col gap-3">
-                <span className="text-[10px] font-bold text-[#008060] uppercase tracking-wider">Brand Logo Customization</span>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">Logo Brand Text</label>
-                  <input 
-                    type="text" 
-                    value={siteConfig.logoText ?? 'Baby Dwelling'} 
-                    onChange={(e) => handleFieldChange('logoText', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-serif font-bold"
-                    placeholder="e.g. Baby Dwelling"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">Logo Image URL (Optional)</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={siteConfig.logoImage ?? ''} 
-                      onChange={(e) => handleFieldChange('logoImage', e.target.value)}
-                      className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-mono flex-1 min-w-0"
-                      placeholder="https://example.com/logo.png"
-                    />
-                    <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[70px]">
-                      <span>{uploadingField === 'logoImage' ? 'Uploading...' : 'Upload'}</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        disabled={uploadingField !== null}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleFileUpload(file, 'logoImage');
-                          }
-                        }}
-                        className="hidden" 
-                      />
-                    </label>
+              {aestheticsTab === 'presets' ? (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <div className="bg-[#FCFAF7] dark:bg-black/20 p-3 rounded-lg border border-amber-100 flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wider">Active Preset: Linen Comfort</span>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal">
+                      The baby dwelling storefront is styled with luxurious cream, oatmeal textures, and warm, calming terracottas. 
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-[#008060]">
+                      <Check size={14} /> Certified Organic Aesthetics Active
+                    </div>
                   </div>
-                  <p className="text-[9px] text-gray-400">If provided, this image will replace the text-based brand logo.</p>
-                </div>
-              </div>
 
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Top Menu Links</span>
-              
-              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
-                {(siteConfig.navigation || []).map((navItem: any, index: number) => (
-                  <div key={index} className="flex gap-1.5 items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
-                    <input 
-                      type="text" 
-                      value={navItem.label} 
-                      onChange={(e) => handleNestedFieldChange('navigation', index, 'label', e.target.value)}
-                      placeholder="Menu Label"
-                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold w-1/2 focus:border-[#008060] transition-colors"
-                    />
-                    <select 
-                      value={navItem.target}
-                      onChange={(e) => handleNestedFieldChange('navigation', index, 'target', e.target.value)}
-                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs bg-white outline-none w-5/12 text-gray-600 focus:border-[#008060] transition-colors"
-                    >
-                      <option value="home">Home</option>
-                      <option value="shop">Shop All</option>
-                      <option value="detail">Signature</option>
-                      {(siteConfig.pages || []).map((page: any) => (
-                        <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
-                      ))}
-                    </select>
-                    <button 
-                      onClick={() => handleRemoveListItem('navigation', index)}
-                      className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
-                      title="Delete link"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleAddListItem('navigation', { label: 'New Link', target: 'shop' })}
-                className="w-full py-1.5 mt-1 border border-dashed border-[#008060]/50 text-[#008060] rounded-lg text-xs font-bold hover:bg-green-50/50 flex items-center justify-center gap-1 transition-colors"
-              >
-                <Plus size={14} /> Add Menu Link
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION: Hero Banner Home */}
-        <div id="customizer-section-hero" className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('hero')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Layout size={14} className="text-[#008060]" />
-              <span>Hero Banner Section</span>
-            </div>
-            {openSection === 'hero' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'hero' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left max-h-[450px] overflow-y-auto shopify-customizer-scrollbar">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Tagline</label>
-                <input 
-                  type="text" 
-                  value={siteConfig.heroTagline || ''} 
-                  onChange={(e) => handleFieldChange('heroTagline', e.target.value)}
-                  className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-semibold"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Main Title (HTML Supported)</label>
-                <textarea 
-                  rows={2}
-                  value={siteConfig.heroTitle || ''} 
-                  onChange={(e) => handleFieldChange('heroTitle', e.target.value)}
-                  className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white font-serif font-bold leading-tight"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Subtitle</label>
-                <textarea 
-                  rows={3}
-                  value={siteConfig.heroSubtitle || ''} 
-                  onChange={(e) => handleFieldChange('heroSubtitle', e.target.value)}
-                  className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white text-gray-600 font-sans leading-relaxed text-left resize-none"
-                />
-              </div>
-
-              {/* Hero Image Selector URL */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Hero Image URL</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={siteConfig.heroImage || ''} 
-                    onChange={(e) => handleFieldChange('heroImage', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white text-gray-600 font-mono flex-1 min-w-0"
-                  />
-                  <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded-lg px-2.5 py-2 text-[10px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[70px]">
-                    <span>{uploadingField === 'heroImage' ? 'Uploading...' : 'Upload'}</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      disabled={uploadingField !== null}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleFileUpload(file, 'heroImage');
-                        }
-                      }}
-                      className="hidden" 
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Preset Hero images recommended gallery */}
-              <div className="flex flex-col gap-1.5 mt-1">
-                <span className="text-[9px] font-bold text-gray-400 uppercase">Or Select Premium Presets:</span>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {PRESET_IMAGES.map((img, i) => (
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      key={i}
                       type="button"
-                      onClick={() => handleFieldChange('heroImage', img.url)}
-                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                        siteConfig.heroImage === img.url ? 'border-[#008060] scale-95 shadow-md' : 'border-transparent hover:border-gray-300'
-                      }`}
-                      title={img.name}
+                      onClick={() => alert('Theme Preset "Linen Comfort" active! Generates soft warm tones.')}
+                      className="p-3 border border-[#008060] bg-[#FCFAF7] rounded-xl text-left transition-all active:scale-95"
                     >
-                      <img src={img.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <span className="block font-bold text-xs text-[#121212]">Linen Comfort</span>
+                      <span className="text-[9px] text-[#008060] block mt-0.5">Active Theme</span>
                     </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => alert('Sage Meadow Preset selection active! Sage Green is now pre-loaded across accent layers.')}
+                      className="p-3 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/35 hover:border-[#008060]/40 rounded-xl text-left transition-all active:scale-95"
+                    >
+                      <span className="block font-bold text-xs text-gray-800 dark:text-gray-200">Sage Meadow</span>
+                      <span className="text-[9px] text-gray-400 block mt-0.5"> Calming Greens</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 animate-fadeIn">
+                  <div className="flex flex-col gap-1 text-left">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Primary Display Font</span>
+                    <div className="p-3 bg-white dark:bg-black rounded-lg font-serif text-sm font-bold border border-gray-150 dark:border-gray-800 text-gray-800 dark:text-gray-200">
+                      Literata (Elegance & Storytelling)
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 text-left">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Primary Sans Body Font</span>
+                    <div className="p-3 bg-white dark:bg-black rounded-lg font-sans text-xs font-semibold border border-gray-150 dark:border-gray-800 text-gray-800 dark:text-gray-200">
+                      Plus Jakarta Sans (Crisp Readability)
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400 leading-normal">
+                    * Font pairings are statically linked via Google Fonts premium imports to safeguard speed metrics.
+                  </p>
+                </div>
+              )}
+            </SidebarAccordion>
+          )}
+
+          {/* SECTION: NAVIGATION HEADER */}
+          {filteredSections.some(s => s.id === 'navigation') && (
+            <SidebarAccordion
+              id="navigation"
+              title="Header Navigation"
+              isOpen={isSectionOpen('navigation')}
+              onToggle={() => toggleSection('navigation')}
+              icon={<Menu size={14} />}
+            >
+              <SidebarTabs
+                activeTab={headerTab}
+                onChangeTab={setHeaderTab}
+                tabs={[
+                  { id: 'logo', label: 'Brand Logo' },
+                  { id: 'menu', label: 'Menu Links' },
+                ]}
+              />
+
+              {headerTab === 'logo' ? (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <SettingInput
+                    id="logoText"
+                    label="Brand Logo Text"
+                    value={siteConfig.logoText ?? 'Baby Dwelling'}
+                    onChange={(val) => handleFieldChange('logoText', val)}
+                    placeholder="e.g. Baby Dwelling"
+                    helpText="Shows when logo image is empty."
+                  />
+
+                  <ImageUploader
+                    id="logoImage"
+                    label="Logo Image (Optional)"
+                    imageUrl={siteConfig.logoImage ?? ''}
+                    onUrlChange={(url) => handleFieldChange('logoImage', url)}
+                    onFileUpload={(file) => handleFileUpload(file, 'logoImage')}
+                    isUploading={uploadingField === 'logoImage'}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 animate-fadeIn">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase select-none">Top Header Menu Links</span>
+                  <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1">
+                    {(siteConfig.navigation || []).map((navItem: any, index: number) => (
+                      <div key={index} className="flex gap-2 items-center bg-white dark:bg-black/20 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
+                        <input 
+                          type="text" 
+                          value={navItem.label} 
+                          onChange={(e) => handleNestedFieldChange('navigation', index, 'label', e.target.value)}
+                          placeholder="Link Text"
+                          className="border border-[#C9CCCF] dark:border-gray-800 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white dark:bg-black font-bold w-1/2 focus:border-[#008060] text-gray-700 dark:text-gray-300"
+                        />
+                        <select 
+                          value={navItem.target}
+                          onChange={(e) => handleNestedFieldChange('navigation', index, 'target', e.target.value)}
+                          className="border border-[#C9CCCF] dark:border-gray-800 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-black outline-none w-5/12 text-gray-600 dark:text-gray-400 font-semibold"
+                        >
+                          <option value="home">Home</option>
+                          <option value="shop">Shop All</option>
+                          <option value="detail">Signature Product</option>
+                          {(siteConfig.pages || []).map((page: any) => (
+                            <option key={page.id} value={`page:${page.slug}`}>Page: {page.title}</option>
+                          ))}
+                        </select>
+                        <button 
+                          onClick={() => handleRemoveListItem('navigation', index)}
+                          className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Delete link"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddListItem('navigation', { label: 'New Collection', target: 'shop' })}
+                    className="w-full py-2 border border-dashed border-[#008060]/50 text-[#008060] rounded-xl text-xs font-bold hover:bg-[#008060]/5 flex items-center justify-center gap-1 transition-colors cursor-pointer mt-1"
+                  >
+                    <Plus size={14} /> Add Menu Link
+                  </button>
+                </div>
+              )}
+            </SidebarAccordion>
+          )}
+
+          {/* SECTION: HERO BANNER HOME */}
+          {filteredSections.some(s => s.id === 'hero') && (
+            <SidebarAccordion
+              id="hero"
+              title="Hero Banner"
+              isOpen={isSectionOpen('hero')}
+              onToggle={() => toggleSection('hero')}
+              icon={<Layout size={14} />}
+            >
+              <SidebarTabs
+                activeTab={heroTab}
+                onChangeTab={setHeroTab}
+                tabs={[
+                  { id: 'content', label: 'Content' },
+                  { id: 'media', label: 'Media' },
+                  { id: 'ctas', label: 'CTAs' },
+                ]}
+              />
+
+              {heroTab === 'content' ? (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <SettingInput
+                    id="heroTagline"
+                    label="Hero Tagline Accent"
+                    value={siteConfig.heroTagline || ''}
+                    onChange={(val) => handleFieldChange('heroTagline', val)}
+                    placeholder="e.g. Pure Combed Linen Slings"
+                  />
+
+                  <SettingTextarea
+                    id="heroTitle"
+                    label="Hero Main Title (HTML/Br tags supported)"
+                    value={siteConfig.heroTitle || ''}
+                    onChange={(val) => handleFieldChange('heroTitle', val)}
+                    placeholder="e.g. Breathe Easy.<br />Bond Deeply."
+                    rows={2}
+                  />
+
+                  <SettingTextarea
+                    id="heroSubtitle"
+                    label="Hero Narrative Subtitle"
+                    value={siteConfig.heroSubtitle || ''}
+                    onChange={(val) => handleFieldChange('heroSubtitle', val)}
+                    placeholder="e.g. Experience premium organic ergonomic comfort..."
+                    rows={3}
+                  />
+                </div>
+              ) : heroTab === 'media' ? (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <ImageUploader
+                    id="heroImage"
+                    label="Hero Banner Image Background"
+                    imageUrl={siteConfig.heroImage || ''}
+                    onUrlChange={(url) => handleFieldChange('heroImage', url)}
+                    onFileUpload={(file) => handleFileUpload(file, 'heroImage')}
+                    isUploading={uploadingField === 'heroImage'}
+                    presets={PRESET_IMAGES}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <SettingGroup title="Primary Call to Action">
+                    <div className="grid grid-cols-2 gap-2">
+                      <SettingInput
+                        id="heroCta1Text"
+                        label="Button Text"
+                        value={siteConfig.heroCta1Text || ''}
+                        onChange={(val) => handleFieldChange('heroCta1Text', val)}
+                        placeholder="Shop All"
+                      />
+                      <div className="flex flex-col gap-1.5 text-left">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Link Destination</label>
+                        <select 
+                          value={siteConfig.heroCta1Link || 'shop'} 
+                          onChange={(e) => handleFieldChange('heroCta1Link', e.target.value)}
+                          className="w-full border border-gray-200 dark:border-gray-800 rounded-lg p-2.5 text-xs bg-white dark:bg-black font-semibold text-gray-800 dark:text-gray-200 outline-none"
+                        >
+                          <option value="home">Home Page</option>
+                          <option value="shop">Shop All Collections</option>
+                          <option value="detail">Signature Carrier</option>
+                        </select>
+                      </div>
+                    </div>
+                  </SettingGroup>
+
+                  <SettingGroup title="Secondary Call to Action">
+                    <div className="grid grid-cols-2 gap-2">
+                      <SettingInput
+                        id="heroCta2Text"
+                        label="Button Text"
+                        value={siteConfig.heroCta2Text || ''}
+                        onChange={(val) => handleFieldChange('heroCta2Text', val)}
+                        placeholder="Learn More"
+                      />
+                      <div className="flex flex-col gap-1.5 text-left">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Link Destination</label>
+                        <select 
+                          value={siteConfig.heroCta2Link || 'detail'} 
+                          onChange={(e) => handleFieldChange('heroCta2Link', e.target.value)}
+                          className="w-full border border-gray-200 dark:border-gray-800 rounded-lg p-2.5 text-xs bg-white dark:bg-black font-semibold text-gray-800 dark:text-gray-200 outline-none"
+                        >
+                          <option value="home">Home Page</option>
+                          <option value="shop">Shop All Collections</option>
+                          <option value="detail">Signature Carrier</option>
+                        </select>
+                      </div>
+                    </div>
+                  </SettingGroup>
+                </div>
+              )}
+            </SidebarAccordion>
+          )}
+
+          {/* SECTION: TRUST BADGES */}
+          {filteredSections.some(s => s.id === 'badges') && (
+            <SidebarAccordion
+              id="badges"
+              title="Trust Badges Section"
+              isOpen={isSectionOpen('badges')}
+              onToggle={() => toggleSection('badges')}
+              icon={<Type size={14} />}
+            >
+              <div className="flex flex-col gap-4">
+                <span className="text-[10px] font-bold text-gray-400 uppercase select-none">Storefront Trust Badges</span>
+                
+                {/* Badge 1 */}
+                <div className="bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm flex flex-col gap-3">
+                  <span className="text-[9px] font-bold text-terracotta uppercase">Trust Column 1</span>
+                  <SettingInput
+                    id="badge1Title"
+                    label="Badge Title"
+                    value={siteConfig.badge1Title || ''}
+                    onChange={(val) => handleFieldChange('badge1Title', val)}
+                    placeholder="Certified Organic"
+                  />
+                  <SettingInput
+                    id="badge1Text"
+                    label="Badge Description"
+                    value={siteConfig.badge1Text || ''}
+                    onChange={(val) => handleFieldChange('badge1Text', val)}
+                    placeholder="Pediatric-approved soft cotton..."
+                  />
+                </div>
+
+                {/* Badge 2 */}
+                <div className="bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm flex flex-col gap-3">
+                  <span className="text-[9px] font-bold text-terracotta uppercase">Trust Column 2</span>
+                  <SettingInput
+                    id="badge2Title"
+                    label="Badge Title"
+                    value={siteConfig.badge2Title || ''}
+                    onChange={(val) => handleFieldChange('badge2Title', val)}
+                    placeholder="Healthy Hips Certification"
+                  />
+                  <SettingInput
+                    id="badge2Text"
+                    label="Badge Description"
+                    value={siteConfig.badge2Text || ''}
+                    onChange={(val) => handleFieldChange('badge2Text', val)}
+                    placeholder="Provides anatomical knee-to-knee M support"
+                  />
+                </div>
+
+                {/* Badge 3 */}
+                <div className="bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm flex flex-col gap-3">
+                  <span className="text-[9px] font-bold text-terracotta uppercase">Trust Column 3</span>
+                  <SettingInput
+                    id="badge3Title"
+                    label="Badge Title"
+                    value={siteConfig.badge3Title || ''}
+                    onChange={(val) => handleFieldChange('badge3Title', val)}
+                    placeholder="Free Shipping"
+                  />
+                  <SettingInput
+                    id="badge3Text"
+                    label="Badge Description"
+                    value={siteConfig.badge3Text || ''}
+                    onChange={(val) => handleFieldChange('badge3Text', val)}
+                    placeholder="Quick carbon-neutral packaging..."
+                  />
+                </div>
+              </div>
+            </SidebarAccordion>
+          )}
+
+          {/* SECTION: COLLECTIONS */}
+          {filteredSections.some(s => s.id === 'categories') && (
+            <SidebarAccordion
+              id="categories"
+              title="Collections"
+              isOpen={isSectionOpen('categories')}
+              onToggle={() => toggleSection('categories')}
+              icon={<Grid size={14} />}
+            >
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-bold text-gray-400 uppercase select-none">Shop Categories & Slug Routing</span>
+                
+                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1">
+                  {(siteConfig.categories || []).map((cat: any, index: number) => (
+                    <div key={cat.id} className="flex gap-2 items-center bg-white dark:bg-black/25 p-3 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm">
+                      <div className="flex-1 flex flex-col gap-1.5 text-left">
+                        <label className="text-[8px] font-bold text-gray-400 uppercase">Collection Name</label>
+                        <input 
+                          type="text" 
+                          value={cat.name} 
+                          onChange={(e) => handleNestedFieldChange('categories', index, 'name', e.target.value)}
+                          placeholder="Category Title"
+                          className="border border-[#C9CCCF] dark:border-gray-800 rounded-lg p-2 text-xs outline-none bg-white dark:bg-black font-bold text-gray-800 dark:text-gray-200"
+                        />
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col gap-1.5 text-left">
+                        <label className="text-[8px] font-bold text-gray-400 uppercase">Slug Target ID</label>
+                        <input 
+                          type="text" 
+                          value={cat.id} 
+                          disabled={cat.id === 'all'}
+                          onChange={(e) => handleNestedFieldChange('categories', index, 'id', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                          placeholder="id-slug"
+                          className="border border-[#C9CCCF] dark:border-gray-800 rounded-lg p-2 text-xs outline-none bg-white dark:bg-black font-mono text-gray-500 disabled:opacity-50"
+                        />
+                      </div>
+
+                      {cat.id !== 'all' && cat.id !== 'carriers' && (
+                        <button 
+                          onClick={() => handleRemoveListItem('categories', index)}
+                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0 mt-4"
+                          title="Delete Collection"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Primary button settings */}
-              <div className="border-t border-gray-100 pt-3 mt-1 grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">Primary CTA Text</label>
-                  <input 
-                    type="text" 
-                    value={siteConfig.heroCta1Text || ''} 
-                    onChange={(e) => handleFieldChange('heroCta1Text', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-1.5 text-[11px] outline-none bg-white font-semibold"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">CTA 1 Target</label>
-                  <select 
-                    value={siteConfig.heroCta1Link || 'shop'} 
-                    onChange={(e) => handleFieldChange('heroCta1Link', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-1.5 text-[11px] bg-white outline-none font-semibold text-gray-600"
-                  >
-                    <option value="home">Home</option>
-                    <option value="shop">Shop All</option>
-                    <option value="detail">Signature</option>
-                  </select>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleAddListItem('categories', { id: `collection-${Date.now().toString().slice(-4)}`, name: 'Custom Collection' })}
+                  className="w-full py-2 border border-dashed border-[#008060]/50 text-[#008060] rounded-xl text-xs font-bold hover:bg-[#008060]/5 flex items-center justify-center gap-1 transition-colors cursor-pointer mt-1"
+                >
+                  <Plus size={14} /> Add New Collection
+                </button>
               </div>
-
-              {/* Secondary button settings */}
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">Secondary CTA Text</label>
-                  <input 
-                    type="text" 
-                    value={siteConfig.heroCta2Text || ''} 
-                    onChange={(e) => handleFieldChange('heroCta2Text', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-1.5 text-[11px] outline-none bg-white font-semibold"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase">CTA 2 Target</label>
-                  <select 
-                    value={siteConfig.heroCta2Link || 'detail'} 
-                    onChange={(e) => handleFieldChange('heroCta2Link', e.target.value)}
-                    className="border border-[#C9CCCF] rounded-lg p-1.5 text-[11px] bg-white outline-none font-semibold text-gray-600"
-                  >
-                    <option value="home">Home</option>
-                    <option value="shop">Shop All</option>
-                    <option value="detail">Signature</option>
-                  </select>
-                </div>
-              </div>
-
-            </div>
+            </SidebarAccordion>
           )}
-        </div>
 
-        {/* SECTION: Trust badges columns */}
-        <div id="customizer-section-badges" className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('badges')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Type size={14} className="text-[#008060]" />
-              <span>Trust Badges Section</span>
-            </div>
-            {openSection === 'badges' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'badges' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-4 text-left">
-              {/* Badge 1 */}
-              <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100 flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-terracotta uppercase">Column Badge 1</span>
-                <input 
-                  type="text" 
-                  value={siteConfig.badge1Title || ''} 
-                  onChange={(e) => handleFieldChange('badge1Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
-                  placeholder="Badge Title"
-                />
-                <input 
-                  type="text" 
-                  value={siteConfig.badge1Text || ''} 
-                  onChange={(e) => handleFieldChange('badge1Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
-                  placeholder="Badge Subtext Description"
-                />
-              </div>
+          {/* SECTION: STANDALONE PAGES */}
+          {filteredSections.some(s => s.id === 'pages') && (
+            <SidebarAccordion
+              id="pages"
+              title="standalone custom pages"
+              isOpen={isSectionOpen('pages')}
+              onToggle={() => toggleSection('pages')}
+              icon={<BookOpen size={14} />}
+            >
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-bold text-gray-400 uppercase select-none">Manage Info & Sizing Pages</span>
+                
+                <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto shopify-customizer-scrollbar pr-1">
+                  {(siteConfig.pages || []).map((page: any, index: number) => (
+                    <div key={page.id} className="border border-gray-150 dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3 shadow-sm text-left">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-[#008060]">Page: {page.title}</span>
+                        <button 
+                          onClick={() => handleRemoveListItem('pages', index)}
+                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                          title="Delete page"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
 
-              {/* Badge 2 */}
-              <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100 flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-terracotta uppercase">Column Badge 2</span>
-                <input 
-                  type="text" 
-                  value={siteConfig.badge2Title || ''} 
-                  onChange={(e) => handleFieldChange('badge2Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
-                  placeholder="Badge Title"
-                />
-                <input 
-                  type="text" 
-                  value={siteConfig.badge2Text || ''} 
-                  onChange={(e) => handleFieldChange('badge2Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
-                  placeholder="Badge Subtext Description"
-                />
-              </div>
+                      <SettingInput
+                        id={`page-title-${page.id}`}
+                        label="Page Title"
+                        value={page.title}
+                        onChange={(val) => handleNestedFieldChange('pages', index, 'title', val)}
+                        placeholder="e.g. Sizing Guide"
+                      />
 
-              {/* Badge 3 */}
-              <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100 flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-terracotta uppercase">Column Badge 3</span>
-                <input 
-                  type="text" 
-                  value={siteConfig.badge3Title || ''} 
-                  onChange={(e) => handleFieldChange('badge3Title', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold focus:border-[#008060] transition-colors"
-                  placeholder="Badge Title"
-                />
-                <input 
-                  type="text" 
-                  value={siteConfig.badge3Text || ''} 
-                  onChange={(e) => handleFieldChange('badge3Text', e.target.value)}
-                  className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
-                  placeholder="Badge Subtext Description"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+                      <SettingInput
+                        id={`page-slug-${page.id}`}
+                        label="Page Slug"
+                        value={page.slug}
+                        onChange={(val) => handleNestedFieldChange('pages', index, 'slug', val.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                        placeholder="e.g. sizing-guide"
+                      />
 
-        {/* SECTION: Curated collections & Shop Categories */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('categories')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Grid size={14} className="text-[#008060]" />
-              <span>Shop Collections & ID Routing</span>
-            </div>
-            {openSection === 'categories' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'categories' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Manage Collection Categories</span>
-              
-              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
-                {(siteConfig.categories || []).map((cat: any, index: number) => (
-                  <div key={cat.id} className="flex gap-1.5 items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
-                    <input 
-                      type="text" 
-                      value={cat.name} 
-                      onChange={(e) => handleNestedFieldChange('categories', index, 'name', e.target.value)}
-                      placeholder="Category Title"
-                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-bold w-1/2 focus:border-[#008060] transition-colors"
-                    />
-                    <input 
-                      type="text" 
-                      value={cat.id} 
-                      disabled={cat.id === 'all'}
-                      onChange={(e) => handleNestedFieldChange('categories', index, 'id', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                      placeholder="id-slug"
-                      className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-500 font-mono w-5/12 disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
-                    />
-                    {cat.id !== 'all' && cat.id !== 'carriers' && (
-                      <button 
-                        onClick={() => handleRemoveListItem('categories', index)}
-                        className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
-                        title="Delete Collection"
+                      <WysiwygEditor
+                        value={page.body || ''}
+                        onChange={(html) => handleNestedFieldChange('pages', index, 'body', html)}
+                        label="Page Rich Text Content"
+                        placeholder="Describe page terms, sizes..."
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChangePageSlug(page.slug);
+                          onChangePreviewView('page');
+                        }}
+                        className="self-start text-[10px] text-[#008060] font-bold hover:underline flex items-center gap-1 cursor-pointer mt-1 bg-green-50 dark:bg-black p-2 rounded-lg"
                       >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleAddListItem('categories', { id: `new-collection-${Date.now().toString().slice(-4)}`, name: 'New Collection' })}
-                className="w-full py-1.5 border border-dashed border-[#008060]/50 text-[#008060] rounded-lg text-xs font-bold hover:bg-green-50/50 flex items-center justify-center gap-1 transition-colors"
-              >
-                <Plus size={14} /> Add New Collection
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION: Custom Informational Pages Builder */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('pages')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <BookOpen size={14} className="text-[#008060]" />
-              <span>Custom Pages (Sizing, About, Policies)</span>
-            </div>
-            {openSection === 'pages' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'pages' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Manage Standalone Pages</span>
-              
-              <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto shopify-customizer-scrollbar pr-1.5">
-                {(siteConfig.pages || []).map((page: any, index: number) => (
-                  <div key={page.id} className="border border-gray-150 rounded-xl p-3 bg-gray-50/50 flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#008060]">Page: {page.title}</span>
-                      <button 
-                        onClick={() => handleRemoveListItem('pages', index)}
-                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-                        title="Delete page"
-                      >
-                        <Trash2 size={13} />
+                        <Eye size={12} /> View Page in Preview
                       </button>
                     </div>
+                  ))}
+                </div>
 
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-gray-400">Page Title</span>
-                      <input 
-                        type="text" 
-                        value={page.title} 
-                        onChange={(e) => handleNestedFieldChange('pages', index, 'title', e.target.value)}
-                        className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold focus:border-[#008060] transition-colors"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-gray-400">Slug URL path</span>
-                      <input 
-                        type="text" 
-                        value={page.slug} 
-                        onChange={(e) => handleNestedFieldChange('pages', index, 'slug', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                        className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChangePageSlug(page.slug);
-                        onChangePreviewView('page');
-                        alert(`Viewing custom page "${page.title}" in live preview pane! Edit its text in Shopify Admin view if you desire full WYSIWYG editor.`);
-                      }}
-                      className="self-start text-[10px] text-[#008060] font-bold hover:underline flex items-center gap-1 cursor-pointer mt-1"
-                    >
-                      <Eye size={12} /> View Page
-                    </button>
-                  </div>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => handleAddListItem('pages', { 
+                    id: String(Date.now()), 
+                    title: 'New Organic Page', 
+                    slug: 'new-organic-page', 
+                    body: '<p>Edit content inside the rich text editor.</p>',
+                    isPublished: true, 
+                    createdAt: new Date().toISOString().split('T')[0] 
+                  })}
+                  className="w-full py-2 border border-dashed border-[#008060]/50 text-[#008060] rounded-xl text-xs font-bold hover:bg-[#008060]/5 flex items-center justify-center gap-1 transition-colors cursor-pointer mt-1"
+                >
+                  <Plus size={14} /> Add Info Page
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => handleAddListItem('pages', { 
-                  id: String(Date.now()), 
-                  title: 'New Policy Page', 
-                  slug: 'new-policy', 
-                  body: '<p>Edit content inside the rich text editor.</p>',
-                  isPublished: true, 
-                  createdAt: new Date().toISOString().split('T')[0] 
-                })}
-                className="w-full py-1.5 border border-dashed border-[#008060]/50 text-[#008060] rounded-lg text-xs font-bold hover:bg-green-50/50 flex items-center justify-center gap-1 transition-colors"
-              >
-                <Plus size={14} /> Add Info Page
-              </button>
-            </div>
+            </SidebarAccordion>
           )}
-        </div>
 
-        {/* SECTION: Products & Pricing Engine */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('products')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <ShoppingBag size={14} className="text-[#008060]" />
-              <span>Products & Dynamic Pricing</span>
-            </div>
-            {openSection === 'products' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'products' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-3 text-left">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Quick Price & Details Customizer</span>
-              
-              <div className="flex flex-col gap-2.5 max-h-[480px] overflow-y-auto shopify-customizer-scrollbar pr-3">
+          {/* SECTION: PRODUCTS & PRICING */}
+          {filteredSections.some(s => s.id === 'products') && (
+            <SidebarAccordion
+              id="products"
+              title="Products & Pricing"
+              isOpen={isSectionOpen('products')}
+              onToggle={() => toggleSection('products')}
+              icon={<ShoppingBag size={14} />}
+            >
+              <SidebarTabs
+                activeTab={productsTab}
+                onChangeTab={setProductsTab}
+                tabs={[
+                  { id: 'price', label: 'Price & MSRP' },
+                  { id: 'details', label: 'Item Details' },
+                ]}
+              />
+
+              <div className="flex flex-col gap-3 max-h-[450px] overflow-y-auto shopify-customizer-scrollbar pr-1">
                 {(siteConfig.products || []).map((prod: Product, index: number) => (
-                  <div key={prod.id} className="border border-gray-150 rounded-xl p-3 bg-gray-50/55 flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold truncate max-w-[150px]">{prod.title}</span>
+                  <div key={prod.id} className="border border-gray-150 dark:border-gray-800 rounded-xl p-3.5 bg-white dark:bg-black/25 flex flex-col gap-3.5 shadow-sm">
+                    <div className="flex justify-between items-center text-left">
+                      <span className="text-xs font-bold truncate max-w-[170px] text-gray-800 dark:text-gray-200">{prod.title}</span>
                       <button
                         onClick={() => setEditingProductIndex(editingProductIndex === index ? null : index)}
-                        className="text-[10px] font-bold text-[#008060] hover:underline cursor-pointer"
+                        className="text-[10px] font-bold text-[#008060] hover:underline cursor-pointer bg-green-50 dark:bg-black/40 px-2 py-1 rounded"
                       >
-                        {editingProductIndex === index ? 'Hide Specs' : 'Edit Specs'}
+                        {editingProductIndex === index ? 'Collapse' : 'Configure specs'}
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[8px] font-bold text-gray-400">Sale Price (£)</span>
-                        <div className="relative">
-                          <DollarSign size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            value={prod.price} 
-                            onChange={(e) => handleNestedFieldChange('products', index, 'price', parseFloat(e.target.value) || 0)}
-                            className="border border-[#C9CCCF] rounded pl-5 pr-2 py-1.5 text-xs outline-none bg-white font-bold w-full focus:border-[#008060] transition-colors"
-                          />
-                        </div>
+                    {productsTab === 'price' ? (
+                      <div className="grid grid-cols-2 gap-3.5">
+                        <SettingInput
+                          id={`prod-price-${prod.id}`}
+                          label="Sale Price (£)"
+                          value={prod.price}
+                          type="number"
+                          step="0.01"
+                          prefix="£"
+                          onChange={(val) => handleNestedFieldChange('products', index, 'price', val)}
+                        />
+                        <SettingInput
+                          id={`prod-orig-price-${prod.id}`}
+                          label="Original Price (£)"
+                          value={prod.originalPrice || ''}
+                          type="number"
+                          step="0.01"
+                          prefix="£"
+                          placeholder="MSRP"
+                          onChange={(val) => handleNestedFieldChange('products', index, 'originalPrice', val || undefined)}
+                        />
                       </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[8px] font-bold text-gray-400">Original Price (£)</span>
-                        <div className="relative">
-                          <DollarSign size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            value={prod.originalPrice || ''} 
-                            onChange={(e) => handleNestedFieldChange('products', index, 'originalPrice', parseFloat(e.target.value) || undefined)}
-                            className="border border-[#C9CCCF] rounded pl-5 pr-2 py-1.5 text-xs outline-none bg-white text-gray-500 w-full focus:border-[#008060] transition-colors"
-                            placeholder="MSRP"
-                          />
-                        </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <SettingInput
+                          id={`prod-title-${prod.id}`}
+                          label="Title Name"
+                          value={prod.title}
+                          onChange={(val) => handleNestedFieldChange('products', index, 'title', val)}
+                        />
+                        <SettingInput
+                          id={`prod-tagline-${prod.id}`}
+                          label="Brief tagline description"
+                          value={prod.tagline}
+                          onChange={(val) => handleNestedFieldChange('products', index, 'tagline', val)}
+                        />
+                        <ImageUploader
+                          id={`prod-image-${prod.id}`}
+                          label="Product Listing Thumbnail"
+                          imageUrl={prod.image || ''}
+                          onUrlChange={(url) => handleNestedFieldChange('products', index, 'image', url)}
+                          onFileUpload={(file) => handleFileUpload(file, 'products', index)}
+                          isUploading={uploadingField === `products-${index}`}
+                        />
                       </div>
-                    </div>
+                    )}
 
                     {editingProductIndex === index && (
-                      <div className="flex flex-col gap-2 mt-1 pt-2 border-t border-gray-200/50">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[8px] font-bold text-gray-400">Product Title</span>
-                          <input 
-                            type="text" 
-                            value={prod.title} 
-                            onChange={(e) => handleNestedFieldChange('products', index, 'title', e.target.value)}
-                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white focus:border-[#008060] transition-colors"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[8px] font-bold text-gray-400">Product Tagline</span>
-                          <input 
-                            type="text" 
-                            value={prod.tagline} 
-                            onChange={(e) => handleNestedFieldChange('products', index, 'tagline', e.target.value)}
-                            className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white text-gray-600 focus:border-[#008060] transition-colors"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[8px] font-bold text-gray-400">Featured Image URL</span>
-                          <div className="flex gap-2">
-                            <input 
-                              type="text" 
-                              value={prod.image} 
-                              onChange={(e) => handleNestedFieldChange('products', index, 'image', e.target.value)}
-                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono text-gray-500 focus:border-[#008060] transition-colors flex-1 min-w-0"
-                            />
-                            <label className="border border-dashed border-[#008060] bg-green-50/30 hover:bg-green-50 text-[#008060] rounded px-2.5 py-1 text-[9px] font-bold cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 min-w-[75px]">
-                              <span>{uploadingField === `products-${index}` ? 'Uploading...' : 'Upload'}</span>
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                disabled={uploadingField !== null}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file, 'products', index);
-                                  }
-                                }}
-                                className="hidden" 
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-bold text-gray-400">Reviews Badge</span>
-                            <input 
-                              type="text" 
-                              value={prod.badge || ''} 
-                              onChange={(e) => handleNestedFieldChange('products', index, 'badge', e.target.value || undefined)}
-                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white focus:border-[#008060] transition-colors"
-                              placeholder="e.g. Best Seller"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-bold text-gray-400">Affiliate Buy Link</span>
-                            <input 
-                              type="text" 
-                              value={prod.buyUrl || ''} 
-                              onChange={(e) => handleNestedFieldChange('products', index, 'buyUrl', e.target.value)}
-                              className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-mono focus:border-[#008060] transition-colors"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex flex-col gap-3.5 mt-2.5 pt-3.5 border-t border-gray-150 dark:border-gray-800 text-left"
+                      >
+                        <SettingInput
+                          id={`prod-badge-${prod.id}`}
+                          label="Reviews / Promo Badge tag"
+                          value={prod.badge || ''}
+                          onChange={(val) => handleNestedFieldChange('products', index, 'badge', val || undefined)}
+                          placeholder="e.g. Pediatrician Approved"
+                        />
+                        <SettingInput
+                          id={`prod-buyurl-${prod.id}`}
+                          label="Affiliate / Merchant Checkout Buy URL"
+                          value={prod.buyUrl || ''}
+                          onChange={(val) => handleNestedFieldChange('products', index, 'buyUrl', val)}
+                          placeholder="https://amazon.co.uk/..."
+                        />
+                      </motion.div>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
+            </SidebarAccordion>
           )}
-        </div>
 
-        {/* SECTION: Checkout Redirection Options */}
-        <div className="border border-[#E1E3E5] bg-white rounded-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => toggleSection('checkout-redirection')}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-sans font-bold text-xs uppercase tracking-wider text-charcoal hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <FileText size={14} className="text-[#008060]" />
-              <span>Checkout Redirection Options</span>
-            </div>
-            {openSection === 'checkout-redirection' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          
-          {openSection === 'checkout-redirection' && (
-            <div className="p-4 border-t border-[#E1E3E5] flex flex-col gap-4 text-left">
-              <p className="text-[11px] text-gray-500 leading-relaxed font-sans">
-                Customize Amazon and Walmart fast-checkout buttons for live cart routing.
-              </p>
+          {/* SECTION: CHECKOUT REDIRECTION */}
+          {filteredSections.some(s => s.id === 'checkout-redirection') && (
+            <SidebarAccordion
+              id="checkout-redirection"
+              title="Checkout Redirection"
+              isOpen={isSectionOpen('checkout-redirection')}
+              onToggle={() => toggleSection('checkout-redirection')}
+              icon={<FileText size={14} />}
+            >
+              <SidebarTabs
+                activeTab={checkoutTab}
+                onChangeTab={setCheckoutTab}
+                tabs={[
+                  { id: 'amazon', label: 'Amazon' },
+                  { id: 'walmart', label: 'Walmart' },
+                ]}
+              />
 
-              {/* Amazon Checkout Settings */}
-              <div className="bg-gray-50/60 p-3 rounded-lg border border-gray-150 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-gray-700 uppercase">Amazon Redirection</span>
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                    <input 
-                      type="checkbox" 
-                      checked={siteConfig.enableAmazonCheckout !== false}
-                      onChange={(e) => handleFieldChange('enableAmazonCheckout', e.target.checked)}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#008060]"></div>
-                  </label>
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-gray-400">Amazon Button Text</span>
-                  <input 
-                    type="text" 
-                    value={siteConfig.amazonCheckoutText ?? 'Checkout using Amazon'} 
-                    onChange={(e) => handleFieldChange('amazonCheckoutText', e.target.value)}
-                    disabled={siteConfig.enableAmazonCheckout === false}
-                    className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
+              {checkoutTab === 'amazon' ? (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <CustomSwitch
+                    id="enableAmazonCheckout"
+                    label="Enable Amazon Fast Checkout"
+                    checked={siteConfig.enableAmazonCheckout !== false}
+                    onChange={(checked) => handleFieldChange('enableAmazonCheckout', checked)}
+                    description="Renders direct checkout button inside active baby shopping carts."
+                  />
+
+                  <SettingInput
+                    id="amazonCheckoutText"
+                    label="Amazon CTA text label"
+                    value={siteConfig.amazonCheckoutText ?? 'Checkout using Amazon'}
+                    onChange={(val) => handleFieldChange('amazonCheckoutText', val)}
+                    placeholder="Checkout using Amazon"
+                    helpText="Shows on orange Amazon integration button."
                   />
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  <CustomSwitch
+                    id="enableWalmartCheckout"
+                    label="Enable Walmart Fast Checkout"
+                    checked={siteConfig.enableWalmartCheckout !== false}
+                    onChange={(checked) => handleFieldChange('enableWalmartCheckout', checked)}
+                    description="Directs shopping cart fast items to Wal-mart global checkout portals."
+                  />
 
-              {/* Walmart Checkout Settings */}
-              <div className="bg-gray-50/60 p-3 rounded-lg border border-gray-150 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-gray-700 uppercase">Walmart Redirection</span>
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                    <input 
-                      type="checkbox" 
-                      checked={siteConfig.enableWalmartCheckout !== false}
-                      onChange={(e) => handleFieldChange('enableWalmartCheckout', e.target.checked)}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#008060]"></div>
-                  </label>
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-gray-400">Walmart Button Text</span>
-                  <input 
-                    type="text" 
-                    value={siteConfig.walmartCheckoutText ?? 'Checkout using Wal-Mart'} 
-                    onChange={(e) => handleFieldChange('walmartCheckoutText', e.target.value)}
-                    disabled={siteConfig.enableWalmartCheckout === false}
-                    className="border border-[#C9CCCF] rounded px-2.5 py-1.5 text-xs outline-none bg-white font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-[#008060] transition-colors"
+                  <SettingInput
+                    id="walmartCheckoutText"
+                    label="Walmart CTA text label"
+                    value={siteConfig.walmartCheckoutText ?? 'Checkout using Wal-Mart'}
+                    onChange={(val) => handleFieldChange('walmartCheckoutText', val)}
+                    placeholder="Checkout using Wal-Mart"
+                    helpText="Shows on Walmart blue integration button."
                   />
                 </div>
-              </div>
-            </div>
+              )}
+            </SidebarAccordion>
           )}
-        </div>
 
+        </AnimatePresence>
       </div>
 
-      {/* Footer Controls: Save & Discard buttons */}
-      <div className="p-4 bg-white border-t border-[#E1E3E5] flex flex-col gap-2">
+      {/* 4. STATIC FOOTER ACTIONS CONTROLS */}
+      <div className="p-4 bg-white dark:bg-[#1C1C1E] border-t border-[#E1E3E5] dark:border-gray-800 flex flex-col gap-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] z-10">
         <button
           onClick={onSave}
-          className="w-full bg-[#008060] hover:bg-[#006e52] text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full bg-[#008060] hover:bg-[#006e52] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-[#008060]/10 hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
         >
           <Save size={14} />
           <span>Save Changes Live</span>
@@ -999,21 +1049,82 @@ export default function ShopifyCustomizer({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onReset}
-            className="border border-[#C9CCCF] hover:bg-gray-50 text-gray-600 py-2 rounded-xl font-semibold text-[11px] uppercase tracking-wider active:scale-[0.98] transition-all flex items-center justify-center gap-1 cursor-pointer"
-            title="Reset theme config to factory default values"
+            className="border border-[#C9CCCF] dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98"
+            title="Reset theme config"
           >
             <RotateCcw size={12} />
             <span>Reset Defaults</span>
           </button>
           
-          <button
-            onClick={onClose}
-            className="bg-charcoal hover:opacity-90 text-white py-2 rounded-xl font-semibold text-[11px] uppercase tracking-wider active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
-          >
-            <span>Close Editor</span>
-          </button>
+          {isMobile ? (
+            <button
+              onClick={() => setIsDrawerOpen(false)}
+              className="bg-charcoal dark:bg-gray-800 hover:opacity-90 text-white py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer active:scale-98"
+            >
+              <span>Minimize Panel</span>
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="bg-charcoal dark:bg-gray-800 hover:opacity-90 text-white py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer active:scale-98"
+            >
+              <span>Close Editor</span>
+            </button>
+          )}
         </div>
       </div>
+    </div>
+  );
+
+  // Responsive Drawer/Sidebar render conditions
+  if (isMobile) {
+    return (
+      <>
+        {/* Floating Toggle Launch Button */}
+        <div className="fixed bottom-6 left-6 z-[999]">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="bg-[#008060] hover:bg-[#006e52] text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 border border-white/20 cursor-pointer"
+          >
+            <Sliders size={14} className="animate-pulse" />
+            <span>Show Shopify Editor Panel</span>
+          </button>
+        </div>
+
+        {/* Slide-over Drawer Portal */}
+        <AnimatePresence>
+          {isDrawerOpen && (
+            <>
+              {/* Dark Backing overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsDrawerOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99998]"
+              />
+
+              {/* Sidebar Content Panel */}
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[85vw] h-full z-[99999] shadow-2xl flex flex-col overflow-hidden"
+              >
+                {SidebarContentMarkup}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  // Desktop Static Sidebar
+  return (
+    <div className="w-full h-full border-r border-[#E1E3E5] dark:border-gray-800 shadow-lg flex flex-col overflow-hidden">
+      {SidebarContentMarkup}
     </div>
   );
 }
