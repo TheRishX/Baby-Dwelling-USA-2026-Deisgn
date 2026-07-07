@@ -30,6 +30,7 @@ import {
 import { Product, Review } from '../types';
 import WysiwygEditor from '../components/WysiwygEditor';
 import SeoView from './SeoView';
+import { compressImage } from '../utils/image';
 
 interface AdminViewProps {
   siteConfig: any;
@@ -146,10 +147,9 @@ export default function AdminView({
     }
   };
 
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
+  const handleImageUpload = async (file: File) => {
+    try {
+      const base64 = await compressImage(file);
       if (uploadTarget === 'hero') {
         handleConfigChange('heroImage', base64);
       } else if (uploadTarget === 'signature') {
@@ -162,8 +162,9 @@ export default function AdminView({
         );
         handleConfigChange('products', updatedProducts);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error compressing and uploading image in admin view:", err);
+    }
   };
 
   const triggerFileInput = (target: 'hero' | 'signature' | string) => {

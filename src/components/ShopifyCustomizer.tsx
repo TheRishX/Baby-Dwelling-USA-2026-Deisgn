@@ -33,6 +33,7 @@ import * as Accordion from '@radix-ui/react-accordion';
 import SidebarAccordion from './customizer/SidebarAccordion';
 import SidebarTabs from './customizer/SidebarTabs';
 import ImageUploader from './customizer/ImageUploader';
+import { compressImage } from '../utils/image';
 import { 
   SettingInput, 
   SettingTextarea, 
@@ -98,42 +99,51 @@ export default function ShopifyCustomizer({
     setUploadingField(keyIdentifier);
     
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image: reader.result,
-              name: file.name
-            })
-          });
-          
-          if (!response.ok) {
-            throw new Error('Upload failed');
-          }
-          
-          const data = await response.json();
-          if (data && data.url) {
-            if (index !== undefined) {
-              handleNestedFieldChange(fieldKey, index, 'image', data.url);
-            } else {
-              handleFieldChange(fieldKey, data.url);
-            }
-          }
-        } catch (err) {
-          console.error("Error uploading file online:", err);
-          alert("Failed to upload image online. Please try another image.");
-        } finally {
-          setUploadingField(null);
+      // 1. Compress the image client-side to keep size small (<200KB) and prevent database or API size limit errors
+      const compressedBase64 = await compressImage(file);
+      
+      try {
+        // 2. Attempt to upload the lightweight compressed base64 to the server for online hosting
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: compressedBase64,
+            name: file.name
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Upload server endpoint failed');
         }
-      };
-      reader.readAsDataURL(file);
+        
+        const data = await response.json();
+        if (data && data.url) {
+          // Success: Use permanent online URL
+          if (index !== undefined) {
+            handleNestedFieldChange(fieldKey, index, 'image', data.url);
+          } else {
+            handleFieldChange(fieldKey, data.url);
+          }
+          setUploadingField(null);
+          return;
+        }
+        throw new Error('Upload returned empty url');
+      } catch (uploadErr) {
+        console.warn("Server upload failed or was blocked. Falling back to robust compressed Base64 locally:", uploadErr);
+        // Fallback: Store the web-optimized lightweight base64 string directly in the configuration.
+        // Since it is compressed, it perfectly respects Firestore's 1MB limit and saves instantly.
+        if (index !== undefined) {
+          handleNestedFieldChange(fieldKey, index, 'image', compressedBase64);
+        } else {
+          handleFieldChange(fieldKey, compressedBase64);
+        }
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error compressing/uploading file:", err);
+    } finally {
       setUploadingField(null);
     }
   };
