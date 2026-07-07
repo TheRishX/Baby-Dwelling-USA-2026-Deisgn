@@ -52,6 +52,7 @@ export default function AdminView({
   const [activeTab, setActiveTab] = useState<'dashboard' | 'homepage' | 'products' | 'categories' | 'pages' | 'navigation' | 'reviews' | 'seo'>('dashboard');
   const [isSavedToastOpen, setIsSavedToastOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Upload references for Base64 image uploading
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,22 +149,59 @@ export default function AdminView({
   };
 
   const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
     try {
+      // 1. Compress client-side
       const base64 = await compressImage(file);
+      let uploadUrl = base64;
+
+      try {
+        // 2. Try online upload
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: base64,
+            name: file.name
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.url) {
+            uploadUrl = data.url;
+            console.log("Uploaded successfully to online URL:", uploadUrl);
+          }
+        } else {
+          throw new Error('API server rejected upload');
+        }
+      } catch (uploadErr) {
+        console.warn("Online upload failed or was blocked, falling back to local compressed Base64:", uploadErr);
+      }
+
+      // 3. Save configuration
       if (uploadTarget === 'hero') {
-        handleConfigChange('heroImage', base64);
+        handleConfigChange('heroImage', uploadUrl);
       } else if (uploadTarget === 'signature') {
-        const updatedSignature = { ...siteConfig.signatureProduct, image: base64 };
+        const updatedSignature = { ...siteConfig.signatureProduct, image: uploadUrl };
         handleConfigChange('signatureProduct', updatedSignature);
+      } else if (uploadTarget === 'new-product') {
+        setNewProduct(prev => ({ ...prev, image: uploadUrl }));
+      } else if (uploadTarget === 'editing-product') {
+        setEditingProduct(prev => prev ? { ...prev, image: uploadUrl } : null);
       } else {
         // Product id
         const updatedProducts = siteConfig.products.map((p: Product) => 
-          p.id === uploadTarget ? { ...p, image: base64 } : p
+          p.id === uploadTarget ? { ...p, image: uploadUrl } : p
         );
         handleConfigChange('products', updatedProducts);
       }
     } catch (err) {
       console.error("Error compressing and uploading image in admin view:", err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -579,13 +617,19 @@ export default function AdminView({
                       onDragOver={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+                      className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors relative ${
                         dragActive 
                           ? 'border-[#008060] bg-[#EAF3EF]' 
                           : 'border-[#C9CCCF] hover:border-[#008060] bg-gray-50'
                       }`}
-                      onClick={() => triggerFileInput('hero')}
+                      onClick={() => !isUploading && triggerFileInput('hero')}
                     >
+                      {isUploading && uploadTarget === 'hero' && (
+                        <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center gap-2 z-10">
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-[#008060] border-t-transparent"></span>
+                          <span className="text-xs font-semibold text-gray-600">Processing &amp; uploading image...</span>
+                        </div>
+                      )}
                       {siteConfig.heroImage ? (
                         <div className="flex items-center gap-4 w-full justify-between">
                           <div className="flex items-center gap-3">
@@ -780,10 +824,20 @@ export default function AdminView({
                       <span className="text-xs font-bold text-terracotta mt-1 inline-block">£{siteConfig.signatureProduct.price.toFixed(2)}</span>
                     </div>
                     <button 
-                      onClick={() => triggerFileInput('signature')}
-                      className="text-xs bg-white border border-[#C9CCCF] hover:bg-gray-100 py-1.5 px-3 rounded flex items-center gap-1"
+                      onClick={() => !isUploading && triggerFileInput('signature')}
+                      disabled={isUploading && uploadTarget === 'signature'}
+                      className="text-xs bg-white border border-[#C9CCCF] hover:bg-gray-100 py-1.5 px-3 rounded flex items-center gap-1 disabled:opacity-50"
                     >
-                      <ImageIcon size={12} /> Replace Image
+                      {isUploading && uploadTarget === 'signature' ? (
+                        <>
+                          <span className="animate-spin rounded-full h-3 w-3 border-2 border-[#008060] border-t-transparent"></span>
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={12} /> Replace Image
+                        </>
+                      )}
                     </button>
                   </div>
 
@@ -997,14 +1051,46 @@ export default function AdminView({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-gray-600">Primary Product Image URL *</label>
-                      <input 
-                        type="text" 
-                        value={newProduct.image || ''} 
-                        onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                        className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-[#008060]"
-                        placeholder="https://images.unsplash.com/..."
-                      />
+                      <label className="text-[11px] font-semibold text-gray-600">Primary Product Image *</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={newProduct.image || ''} 
+                          onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                          className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-[#008060] flex-1"
+                          placeholder="Paste image URL or click upload..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => !isUploading && triggerFileInput('new-product')}
+                          disabled={isUploading}
+                          className="px-3 py-2 bg-white border border-[#C9CCCF] hover:bg-gray-50 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                        >
+                          {isUploading && uploadTarget === 'new-product' ? (
+                            <>
+                              <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#008060] border-t-transparent"></span>
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={14} />
+                              <span>Upload Image</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {newProduct.image && (
+                        <div className="mt-2 relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 group">
+                          <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewProduct({ ...newProduct, image: '' })}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -1188,13 +1274,46 @@ export default function AdminView({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-gray-600">Primary Product Image URL *</label>
-                      <input 
-                        type="text" 
-                        value={editingProduct.image || ''} 
-                        onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                        className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-amber-400"
-                      />
+                      <label className="text-[11px] font-semibold text-gray-600">Primary Product Image *</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={editingProduct.image || ''} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
+                          className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-amber-400 flex-1"
+                          placeholder="Paste image URL or click upload..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => !isUploading && triggerFileInput('editing-product')}
+                          disabled={isUploading}
+                          className="px-3 py-2 bg-white border border-[#C9CCCF] hover:bg-gray-50 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                        >
+                          {isUploading && uploadTarget === 'editing-product' ? (
+                            <>
+                              <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-amber-500 border-t-transparent"></span>
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={14} />
+                              <span>Upload Image</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {editingProduct.image && (
+                        <div className="mt-2 relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 group">
+                          <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setEditingProduct({ ...editingProduct, image: '' })}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -1325,11 +1444,16 @@ export default function AdminView({
                         <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
-                              onClick={() => triggerFileInput(prod.id)}
-                              className="p-1.5 text-gray-500 hover:text-[#008060] hover:bg-[#EAF3EF] rounded transition-all"
-                              title="Replace Photo"
+                              onClick={() => !isUploading && triggerFileInput(prod.id)}
+                              disabled={isUploading && uploadTarget === prod.id}
+                              className="p-1.5 text-gray-500 hover:text-[#008060] hover:bg-[#EAF3EF] rounded transition-all disabled:opacity-50"
+                              title={isUploading && uploadTarget === prod.id ? "Uploading..." : "Replace Photo"}
                             >
-                              <ImageIcon size={14} />
+                              {isUploading && uploadTarget === prod.id ? (
+                                <span className="animate-spin rounded-full h-3 w-3 border-2 border-[#008060] border-t-transparent block mx-auto"></span>
+                              ) : (
+                                <ImageIcon size={14} />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingProduct(prod)}

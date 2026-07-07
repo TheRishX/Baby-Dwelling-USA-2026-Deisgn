@@ -192,7 +192,7 @@ export default function App() {
             
             // Only auto-update siteConfig if the admin is NOT actively customizing on this specific device,
             // to avoid overwriting their active typing/selection.
-            if (!isCustomizingMode) {
+            if (!isCustomizingMode && activeView !== 'admin') {
               setSiteConfig(data);
               localStorage.setItem('bd_site_config_v1', JSON.stringify(data));
             }
@@ -201,7 +201,7 @@ export default function App() {
           console.error("Firestore listener error, falling back to polling:", error);
           // Fallback to active polling if listener fails
           const interval = setInterval(() => {
-            if (!isCustomizingMode) {
+            if (!isCustomizingMode && activeView !== 'admin') {
               fetchConfigFromServer();
             }
           }, 3000);
@@ -213,7 +213,7 @@ export default function App() {
     } else {
       // Fallback: active polling
       const interval = setInterval(() => {
-        if (!isCustomizingMode) {
+        if (!isCustomizingMode && activeView !== 'admin') {
           fetchConfigFromServer();
         }
       }, 3000);
@@ -223,7 +223,7 @@ export default function App() {
     return () => {
       unsubscribe();
     };
-  }, [isCustomizingMode]);
+  }, [isCustomizingMode, activeView]);
 
   const saveConfigToBackend = async (newConfig: any) => {
     try {
@@ -242,14 +242,14 @@ export default function App() {
     }
   };
 
-  // Debounce saving config to backend when siteConfig changes (only in Customizing Mode)
+  // Debounce saving config to backend when siteConfig changes (only in Customizing Mode or Admin Mode)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
-    if (!isCustomizingMode) {
+    if (!isCustomizingMode && activeView !== 'admin') {
       previousConfigRef.current = JSON.stringify(siteConfig);
       return;
     }
@@ -270,7 +270,7 @@ export default function App() {
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [siteConfig, isCustomizingMode]);
+  }, [siteConfig, isCustomizingMode, activeView]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);

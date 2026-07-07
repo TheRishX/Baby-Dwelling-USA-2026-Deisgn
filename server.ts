@@ -204,6 +204,9 @@ async function uploadToCatbox(base64Data: string, fileName = "image.jpg"): Promi
 
   const response = await fetch("https://catbox.moe/user/api.php", {
     method: "POST",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    },
     body: formData,
   });
 
@@ -213,6 +216,42 @@ async function uploadToCatbox(base64Data: string, fileName = "image.jpg"): Promi
 
   const url = await response.text();
   return url.trim();
+}
+
+// Robust fallback to tmpfiles.org temporary file hosting (expires in 24 hours, perfect for live previews)
+async function uploadToTmpFiles(base64Data: string, fileName = "image.jpg"): Promise<string> {
+  const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error("Invalid base64 string format");
+  }
+  const mimeType = matches[1];
+  const base64String = matches[2];
+  const buffer = Buffer.from(base64String, "base64");
+
+  const blob = new Blob([buffer], { type: mimeType });
+  const formData = new FormData();
+  formData.append("file", blob, fileName);
+
+  const response = await fetch("https://tmpfiles.org/api/v1/upload", {
+    method: "POST",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload to TmpFiles failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data && data.status === "success" && data.data && data.data.url) {
+    // Standard URL: https://tmpfiles.org/12345/image.jpg
+    // Direct displayable URL: https://tmpfiles.org/dl/12345/image.jpg
+    const originalUrl = data.data.url;
+    return originalUrl.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
+  }
+  throw new Error("Invalid response format from TmpFiles API");
 }
 
 async function startServer() {
@@ -312,9 +351,26 @@ async function startServer() {
       if (!image) {
         return res.status(400).json({ error: "Missing image data" });
       }
+
       console.log(`Uploading received image '${name || "unnamed"}' to online storage...`);
-      const onlineUrl = await uploadToCatbox(image, name || "image.jpg");
-      console.log(`Image uploaded successfully. Permanent online URL: ${onlineUrl}`);
+      let onlineUrl: string | null = null;
+      let catboxError: any = null;
+
+      try {
+        onlineUrl = await uploadToCatbox(image, name || "image.jpg");
+        console.log(`Image uploaded successfully to Catbox: ${onlineUrl}`);
+      } catch (err: any) {
+        catboxError = err;
+        console.warn("Upload to Catbox failed, trying TmpFiles as a reliable fallback...", err.message || err);
+        try {
+          onlineUrl = await uploadToTmpFiles(image, name || "image.jpg");
+          console.log(`Image uploaded successfully to TmpFiles: ${onlineUrl}`);
+        } catch (fallbackErr: any) {
+          console.error("All online image upload targets failed!");
+          throw new Error(`Catbox error: ${catboxError.message || catboxError}. TmpFiles error: ${fallbackErr.message || fallbackErr}`);
+        }
+      }
+
       res.json({ success: true, url: onlineUrl });
     } catch (err: any) {
       console.error("Error uploading image online:", err);
