@@ -15,6 +15,7 @@ export interface Product {
   buyUrl: string;
   colors?: string[];
   specs?: Record<string, string>;
+  inStock?: boolean;
 }
 
 export interface Review {

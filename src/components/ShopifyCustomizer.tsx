@@ -54,6 +54,7 @@ interface ShopifyCustomizerProps {
   onChangePreviewDevice: (device: 'desktop' | 'tablet' | 'mobile') => void;
   currentPageSlug: string;
   onChangePageSlug: (slug: string) => void;
+  syncState?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
 export default function ShopifyCustomizer({
@@ -68,6 +69,7 @@ export default function ShopifyCustomizer({
   onChangePreviewDevice,
   currentPageSlug,
   onChangePageSlug,
+  syncState = 'idle',
 }: ShopifyCustomizerProps) {
   // Navigation tabs for sections that have deep settings
   const [aestheticsTab, setAestheticsTab] = useState<string>('presets');
@@ -278,10 +280,29 @@ export default function ShopifyCustomizer({
           <div className="w-7 h-7 rounded-lg bg-[#008060] flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-[#008060]/20">S</div>
           <div>
             <h1 className="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">Shopify Customizer</h1>
-            <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#008060] inline-block animate-pulse"></span>
-              Live Storefront Editor
-            </p>
+            <div className="text-[9px] font-bold flex items-center gap-1.5 mt-0.5">
+              {syncState === 'saving' ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
+                  <span className="text-amber-600 dark:text-amber-400">Saving...</span>
+                </>
+              ) : syncState === 'saved' ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                  <span className="text-emerald-600 dark:text-emerald-400">Changes Saved</span>
+                </>
+              ) : syncState === 'error' ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                  <span className="text-red-600 dark:text-red-400">Sync Error</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#008060] inline-block"></span>
+                  <span className="text-gray-400 dark:text-gray-500">Live Storefront Editor</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         

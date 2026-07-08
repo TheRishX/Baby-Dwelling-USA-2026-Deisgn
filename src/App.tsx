@@ -14,7 +14,7 @@ import { products as initialProducts, signatureProduct as initialSignatureProduc
 import { Settings, Palette } from 'lucide-react';
 import SeoView from './views/SeoView';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 let clientDb: any = null;
@@ -115,6 +115,7 @@ export default function App() {
   });
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   // Dynamic Site Customizer Config State
   const [siteConfig, setSiteConfig] = useState(() => {
@@ -153,28 +154,54 @@ export default function App() {
     let unsubscribe: () => void = () => {};
 
     const fetchConfigFromServer = async () => {
-      try {
-        // Prevent browser cache by appending a unique timestamp parameter
-        const response = await fetch(`/api/site-config?t=${Date.now()}`, {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+      let loadedConfig = null;
+
+      // 1. Try to fetch directly from Firestore client-side first (extremely fast and robust for Vercel)
+      if (clientDb) {
+        try {
+          const { getDoc } = await import('firebase/firestore');
+          const docRef = doc(clientDb, "siteConfigs", "baby_dwelling");
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            loadedConfig = docSnap.data();
+            console.log("⚡ Loaded initial config directly from Firestore on client mount!");
           }
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data && data.config) {
-          setSiteConfig(data.config);
-          localStorage.setItem('bd_site_config_v1', JSON.stringify(data.config));
-        } else {
-          // No configuration on backend yet, upload current local state as initial configuration
-          const saved = localStorage.getItem('bd_site_config_v1');
-          const initialConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-          saveConfigToBackend(initialConfig);
+        } catch (dbErr) {
+          console.error("Error fetching initial config from Firestore client:", dbErr);
         }
-      } catch (err) {
-        console.error('Error loading config from server:', err);
+      }
+
+      // 2. Fallback to REST API if Firestore didn't succeed
+      if (!loadedConfig) {
+        try {
+          const response = await fetch(`/api/site-config?t=${Date.now()}`, {
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.config) {
+              loadedConfig = data.config;
+            }
+          }
+        } catch (err) {
+          console.warn('REST config fetch error (expected on serverless Vercel):', err);
+        }
+      }
+
+      // 3. Set the state
+      if (loadedConfig) {
+        setSiteConfig(loadedConfig);
+        localStorage.setItem('bd_site_config_v1', JSON.stringify(loadedConfig));
+      } else {
+        // No configuration fetched, use local storage or defaults
+        const saved = localStorage.getItem('bd_site_config_v1');
+        const initialConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+        setSiteConfig(initialConfig);
+        saveConfigToBackend(initialConfig);
       }
     };
 
@@ -226,8 +253,23 @@ export default function App() {
   }, [isCustomizingMode, activeView]);
 
   const saveConfigToBackend = async (newConfig: any) => {
+    setSyncState('saving');
+    let success = false;
     try {
-      await fetch('/api/site-config', {
+      // 1. Direct Firebase Firestore write on the client side (Instant live sync for Vercel & local development)
+      if (clientDb) {
+        const docRef = doc(clientDb, "siteConfigs", "baby_dwelling");
+        await setDoc(docRef, newConfig);
+        console.log("⚡ Saved successfully to Firestore directly from client!");
+        success = true;
+      }
+    } catch (dbErr) {
+      console.error('Error saving directly to Firestore from client:', dbErr);
+    }
+
+    try {
+      // 2. Fallback REST API save for Node/container backup
+      const res = await fetch('/api/site-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,8 +279,18 @@ export default function App() {
         },
         body: JSON.stringify({ config: newConfig }),
       });
+      if (res.ok) {
+        success = true;
+      }
     } catch (err) {
-      console.error('Error saving config to server:', err);
+      console.warn('REST save error (expected if running on serverless Vercel):', err);
+    }
+
+    if (success) {
+      setSyncState('saved');
+      setTimeout(() => setSyncState('idle'), 2500);
+    } else {
+      setSyncState('error');
     }
   };
 
@@ -281,6 +333,56 @@ export default function App() {
     localStorage.setItem('bd_site_config_v1', JSON.stringify(siteConfig));
     saveConfigToBackend(siteConfig);
     triggerToast('✨ Settings saved successfully to live storefront!');
+  };
+
+  const handleBulkUpdateProducts = async (updatedProductsList: Product[]) => {
+    setSyncState('saving');
+    const updatedConfig = { ...siteConfig, products: updatedProductsList };
+    setSiteConfig(updatedConfig);
+    localStorage.setItem('bd_site_config_v1', JSON.stringify(updatedConfig));
+
+    let success = false;
+    try {
+      // 1. Direct Firebase Firestore writeBatch operation (Instant live sync for Vercel & local development)
+      if (clientDb) {
+        const batch = writeBatch(clientDb);
+        const docRef = doc(clientDb, "siteConfigs", "baby_dwelling");
+        batch.set(docRef, updatedConfig);
+        await batch.commit();
+        console.log("⚡ Bulk products updated successfully via Firestore writeBatch!");
+        success = true;
+      }
+    } catch (dbErr) {
+      console.error('Error saving bulk products in batch:', dbErr);
+    }
+
+    try {
+      // 2. Fallback REST API save for Node/container backup
+      const res = await fetch('/api/site-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        body: JSON.stringify({ config: updatedConfig }),
+      });
+      if (res.ok) {
+        success = true;
+      }
+    } catch (err) {
+      console.warn('REST save error (expected on serverless):', err);
+    }
+
+    if (success) {
+      setSyncState('saved');
+      setTimeout(() => setSyncState('idle'), 2500);
+      triggerToast('✨ Bulk prices and availability updated successfully!');
+    } else {
+      setSyncState('error');
+      triggerToast('❌ Error performing bulk update.');
+    }
   };
 
   const handleResetConfig = () => {
@@ -386,6 +488,7 @@ export default function App() {
             onChangePreviewDevice={setPreviewDevice}
             currentPageSlug={currentPageSlug}
             onChangePageSlug={setCurrentPageSlug}
+            syncState={syncState}
           />
         </div>
 
@@ -707,6 +810,9 @@ export default function App() {
                     setIsCustomizingMode(false);
                     triggerToast('👋 Logged out from Shopify Admin successfully.');
                   }}
+                  syncState={syncState}
+                  onSave={handleSaveConfig}
+                  onBulkUpdateProducts={handleBulkUpdateProducts}
                 />
               </motion.div>
             ) : (

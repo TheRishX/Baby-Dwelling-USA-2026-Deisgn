@@ -63,11 +63,15 @@ export default function ProductCard({ product, onViewDetails, onAddToCart }: Pro
         />
         
         {/* Dynamic Badge */}
-        {product.badge && (
+        {product.inStock === false ? (
+          <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-sans font-bold text-white tracking-widest uppercase shadow">
+            Sold Out
+          </div>
+        ) : product.badge ? (
           <div className="absolute bottom-4 left-4 bg-charcoal/85 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-sans font-semibold text-warm-white tracking-widest uppercase border border-white/10">
             {product.badge}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Card Information */}
@@ -101,13 +105,22 @@ export default function ProductCard({ product, onViewDetails, onAddToCart }: Pro
             </span>
           </div>
 
-          <button
-            onClick={() => onAddToCart(product, product.colors ? product.colors[0] : undefined)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-charcoal text-warm-white hover:bg-charcoal/90 dark:bg-warm-white dark:text-charcoal dark:hover:bg-warm-white/90 font-sans text-xs font-semibold tracking-wider uppercase shadow-sm active:scale-95 transition-all cursor-pointer"
-          >
-            <span>Add to Bag</span>
-            <ArrowUpRight size={13} />
-          </button>
+          {product.inStock === false ? (
+            <button
+              disabled
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-200 text-gray-400 dark:bg-zinc-800 dark:text-zinc-600 font-sans text-xs font-semibold tracking-wider uppercase cursor-not-allowed"
+            >
+              <span>Sold Out</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onAddToCart(product, product.colors ? product.colors[0] : undefined)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-charcoal text-warm-white hover:bg-charcoal/90 dark:bg-warm-white dark:text-charcoal dark:hover:bg-warm-white/90 font-sans text-xs font-semibold tracking-wider uppercase shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <span>Add to Bag</span>
+              <ArrowUpRight size={13} />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

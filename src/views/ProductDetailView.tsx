@@ -60,6 +60,7 @@ export default function ProductDetailView({ productId = 'signature-heritage', on
     specs: productSpecs,
     description: product.description,
     images: galleryImages,
+    inStock: product.inStock,
   };
 
   const handleLocalAddToCart = () => {
@@ -212,13 +213,22 @@ export default function ProductDetailView({ productId = 'signature-heritage', on
             </h3>
             
             {/* Main Action: Add directly to local basket */}
-            <button
-              onClick={handleLocalAddToCart}
-              className="w-full py-4 bg-charcoal text-warm-white hover:opacity-95 dark:bg-warm-white dark:text-charcoal font-sans text-xs font-semibold tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
-            >
-              <span>Add to Baby Dwelling Basket</span>
-              <ArrowUpRight size={14} />
-            </button>
+            {product.inStock === false ? (
+              <button
+                disabled
+                className="w-full py-4 bg-gray-250 text-gray-400 dark:bg-zinc-800 dark:text-zinc-600 font-sans text-xs font-semibold tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
+              >
+                <span>Sold Out / Out of Stock</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleLocalAddToCart}
+                className="w-full py-4 bg-charcoal text-warm-white hover:opacity-95 dark:bg-warm-white dark:text-charcoal font-sans text-xs font-semibold tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Add to Baby Dwelling Basket</span>
+                <ArrowUpRight size={14} />
+              </button>
+            )}
 
             {/* Split Retailers with elegant boutique theme buttons */}
             <div className="grid grid-cols-2 gap-3 mt-1">

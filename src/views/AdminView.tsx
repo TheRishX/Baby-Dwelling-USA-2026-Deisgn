@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, DragEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -25,7 +25,8 @@ import {
   Compass,
   Link,
   LogOut,
-  Globe
+  Globe,
+  Save
 } from 'lucide-react';
 import { Product, Review } from '../types';
 import WysiwygEditor from '../components/WysiwygEditor';
@@ -39,6 +40,9 @@ interface AdminViewProps {
   onLogout: () => void;
   onNavigateToView?: (view: any, subTarget?: string) => void;
   setCurrentPageSlug?: (slug: string) => void;
+  syncState?: 'idle' | 'saving' | 'saved' | 'error';
+  onSave?: () => void;
+  onBulkUpdateProducts?: (products: Product[]) => Promise<void>;
 }
 
 export default function AdminView({ 
@@ -47,9 +51,35 @@ export default function AdminView({
   onNavigateHome, 
   onLogout,
   onNavigateToView = () => {},
-  setCurrentPageSlug = () => {}
+  setCurrentPageSlug = () => {},
+  syncState = 'idle',
+  onSave = () => {},
+  onBulkUpdateProducts = async () => {},
 }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'homepage' | 'products' | 'categories' | 'pages' | 'navigation' | 'reviews' | 'seo'>('dashboard');
+  const [productsSubTab, setProductsSubTab] = useState<'standard' | 'bulk'>('standard');
+  const [bulkProducts, setBulkProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (siteConfig && siteConfig.products) {
+      setBulkProducts(JSON.parse(JSON.stringify(siteConfig.products)));
+    }
+  }, [siteConfig.products, productsSubTab]);
+
+  const handleBulkPriceChange = (id: string, newPrice: number) => {
+    setBulkProducts(prev => prev.map(p => p.id === id ? { ...p, price: newPrice } : p));
+  };
+
+  const handleBulkStockToggle = (id: string) => {
+    setBulkProducts(prev => prev.map(p => p.id === id ? { ...p, inStock: p.inStock === false ? true : false } : p));
+  };
+
+  const handleDiscardBulkChanges = () => {
+    if (siteConfig && siteConfig.products) {
+      setBulkProducts(JSON.parse(JSON.stringify(siteConfig.products)));
+    }
+  };
+
   const [isSavedToastOpen, setIsSavedToastOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -313,12 +343,32 @@ export default function AdminView({
         </div>
         
         <div className="flex items-center gap-3">
-          <span className="text-xs bg-[#008060] font-semibold text-white px-2.5 py-1 rounded">
+          <span className="text-xs bg-white/5 border border-white/10 font-semibold text-gray-300 px-2.5 py-1 rounded hidden sm:inline-block">
             Baby Dwelling Store
           </span>
           <button 
+            onClick={onSave}
+            disabled={syncState === 'saving'}
+            className={`text-xs font-bold text-white px-3.5 py-1.5 rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+              syncState === 'saving' 
+                ? 'bg-[#008060]/50 cursor-not-allowed animate-pulse' 
+                : syncState === 'saved'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10'
+                  : 'bg-[#008060] hover:bg-[#006e52] shadow-[#008060]/10 active:scale-95'
+            }`}
+          >
+            <Save size={13} className={syncState === 'saving' ? 'animate-spin' : ''} />
+            <span>
+              {syncState === 'saving' 
+                ? 'Saving...' 
+                : syncState === 'saved' 
+                  ? 'Saved Live!' 
+                  : 'Save Changes'}
+            </span>
+          </button>
+          <button 
             onClick={() => setResetModalOpen(true)}
-            className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 py-1 px-2.5 bg-red-500/10 hover:bg-red-500/15 rounded cursor-pointer"
+            className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 py-1.5 px-2.5 bg-red-500/10 hover:bg-red-500/15 rounded cursor-pointer"
           >
             <RefreshCw size={12} />
             <span>Factory Reset</span>
@@ -441,6 +491,57 @@ export default function AdminView({
 
         {/* Dynamic Admin View Panel */}
         <section className="flex-grow flex flex-col gap-6">
+          
+          {activeTab !== 'dashboard' && (
+            <div className="bg-white p-4 rounded-2xl border border-[#E1E3E5] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${
+                  syncState === 'saving' 
+                    ? 'bg-amber-50 text-amber-600 animate-pulse' 
+                    : syncState === 'saved' 
+                      ? 'bg-emerald-50 text-emerald-600' 
+                      : 'bg-gray-50 text-gray-500'
+                }`}>
+                  <Save size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-800">Visual Configuration Manager</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {syncState === 'saving' ? (
+                      <span className="text-amber-600 font-medium">Syncing edits directly to Firestore live database...</span>
+                    ) : syncState === 'saved' ? (
+                      <span className="text-emerald-600 font-medium">✨ All edits are live and visible to visitors instantly!</span>
+                    ) : (
+                      <span>Modify any links, images, or texts below to update the storefront live.</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  onClick={onSave}
+                  disabled={syncState === 'saving'}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
+                    syncState === 'saving'
+                      ? 'bg-amber-100 text-amber-700 cursor-not-allowed'
+                      : 'bg-[#008060] hover:bg-[#006e52] text-white shadow-md'
+                  }`}
+                >
+                  {syncState === 'saving' ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Saving to Firestore...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Save and Publish Live</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* TAB 1: DASHBOARD & ANALYTICS */}
           {activeTab === 'dashboard' && (
@@ -950,21 +1051,50 @@ export default function AdminView({
           {/* TAB 3: PRODUCTS INVENTORY */}
           {activeTab === 'products' && (
             <div className="flex flex-col gap-6 bg-white p-6 rounded-2xl border border-[#E1E3E5] shadow-sm">
-              <div className="flex justify-between items-center border-b border-[#E1E3E5] pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#E1E3E5] pb-4 gap-4">
                 <div>
                   <h2 className="font-serif text-xl font-bold">Products Inventory Database</h2>
                   <p className="text-xs text-gray-500 mt-1">Total items in active Shopify listings: {siteConfig.products.length} products</p>
                 </div>
+                {productsSubTab === 'standard' && (
+                  <button
+                    onClick={() => setIsAddingProduct(true)}
+                    className="bg-[#008060] text-white hover:bg-[#006e52] px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer w-fit"
+                  >
+                    <Plus size={15} /> Add Product
+                  </button>
+                )}
+              </div>
+
+              {/* Product Mode Switcher */}
+              <div className="flex border-b border-gray-200 gap-1 pb-px">
                 <button
-                  onClick={() => setIsAddingProduct(true)}
-                  className="bg-[#008060] text-white hover:bg-[#006e52] px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                  onClick={() => setProductsSubTab('standard')}
+                  className={`py-2.5 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    productsSubTab === 'standard' 
+                      ? 'border-[#008060] text-[#008060]' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <Plus size={15} /> Add Product
+                  Standard Catalog List
+                </button>
+                <button
+                  onClick={() => setProductsSubTab('bulk')}
+                  className={`py-2.5 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                    productsSubTab === 'bulk' 
+                      ? 'border-[#008060] text-[#008060]' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Settings size={13} />
+                  <span>Bulk Price &amp; Stock Editor (Batch Write)</span>
                 </button>
               </div>
 
-              {/* Add Product Modal Drawer */}
-              {isAddingProduct && (
+              {productsSubTab === 'standard' && (
+                <>
+                  {/* Add Product Modal Drawer */}
+                  {isAddingProduct && (
                 <div className="bg-[#F8F9FA] border-2 border-[#008060]/35 p-6 rounded-2xl flex flex-col gap-4 relative animate-fadeIn shadow-inner">
                   <div className="flex justify-between items-center border-b border-[#008060]/10 pb-3">
                     <h3 className="font-serif font-bold text-sm text-[#008060] flex items-center gap-1.5">
@@ -1476,6 +1606,117 @@ export default function AdminView({
                   </tbody>
                 </table>
               </div>
+                </>
+              )}
+
+              {/* BULK TAB VIEW */}
+              {productsSubTab === 'bulk' && (
+                <div className="flex flex-col gap-5 animate-fadeIn">
+                  {/* Warning Info Box */}
+                  <div className="bg-[#EAF3EF]/60 border border-[#008060]/20 p-4 rounded-xl text-xs text-[#008060] flex items-start gap-3 text-left">
+                    <div className="bg-[#008060] text-white p-1 rounded-md shrink-0">
+                      <Save size={14} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800 text-xs">Batch Firestore Operations Panel</h4>
+                      <p className="text-gray-600 mt-1">
+                        Modify prices and availability below. These changes are saved in local buffer state and will be written as a <strong>single batch Firestore transaction</strong> (`writeBatch`) when you click publish.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bulk Editor Table */}
+                  <div className="overflow-x-auto border border-[#E1E3E5] rounded-xl bg-white shadow-sm">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-[#F8F9FA] border-b border-[#E1E3E5] text-[#4C4E50] uppercase tracking-wider font-semibold">
+                          <th className="p-4 w-16">Preview</th>
+                          <th className="p-4">Product details</th>
+                          <th className="p-4 w-28">Category</th>
+                          <th className="p-4 w-32">Price (£)</th>
+                          <th className="p-4 w-40 text-center">Availability (Stock)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkProducts.map((prod: Product) => (
+                          <tr key={prod.id} className="border-b border-[#E1E3E5] hover:bg-gray-50 transition-colors">
+                            <td className="p-4">
+                              <img 
+                                src={prod.image} 
+                                alt={prod.title} 
+                                referrerPolicy="no-referrer"
+                                className="w-10 h-12 object-cover rounded-md border bg-light-beige/45" 
+                              />
+                            </td>
+                            <td className="p-4">
+                              <div className="font-serif font-bold text-sm text-[#202223]">{prod.title}</div>
+                              <div className="text-gray-400 text-[10px] truncate max-w-xs mt-0.5">{prod.tagline}</div>
+                            </td>
+                            <td className="p-4">
+                              <span className="capitalize px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold text-[10px]">
+                                {prod.category}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-1.5 max-w-[120px]">
+                                <span className="text-gray-400 font-bold">£</span>
+                                <input 
+                                  type="number"
+                                  value={prod.price}
+                                  onChange={(e) => handleBulkPriceChange(prod.id, Number(e.target.value))}
+                                  className="w-full border border-[#C9CCCF] rounded-lg p-1.5 text-xs outline-none bg-white focus:border-[#008060] font-mono text-right font-semibold"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleBulkStockToggle(prod.id)}
+                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                                  prod.inStock !== false 
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                    : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                                }`}
+                              >
+                                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-current animate-pulse"></span>
+                                {prod.inStock !== false ? 'In Stock' : 'Out of Stock'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Bulk Actions Footer */}
+                  <div className="flex justify-end items-center gap-3 border-t border-gray-150 pt-4 mt-1">
+                    <button
+                      onClick={handleDiscardBulkChanges}
+                      className="border border-[#C9CCCF] bg-white text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                    >
+                      Reset Buffer
+                    </button>
+                    <button
+                      onClick={() => onBulkUpdateProducts(bulkProducts)}
+                      disabled={syncState === 'saving'}
+                      className="bg-[#008060] text-white hover:bg-[#006e52] px-5 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-2 shadow-md active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {syncState === 'saving' ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Publishing Batch...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={14} />
+                          <span>Commit &amp; Publish Batch (Firestore)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
