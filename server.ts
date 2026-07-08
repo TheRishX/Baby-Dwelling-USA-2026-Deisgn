@@ -361,12 +361,12 @@ async function startServer() {
         console.log(`Image uploaded successfully to Catbox: ${onlineUrl}`);
       } catch (err: any) {
         catboxError = err;
-        console.warn("Upload to Catbox failed, trying TmpFiles as a reliable fallback...", err.message || err);
+        console.log(`Note: Upload to Catbox failed (${err.message || err}), trying TmpFiles as a reliable fallback...`);
         try {
           onlineUrl = await uploadToTmpFiles(image, name || "image.jpg");
           console.log(`Image uploaded successfully to TmpFiles: ${onlineUrl}`);
         } catch (fallbackErr: any) {
-          console.error("All online image upload targets failed!");
+          console.log("All online image upload targets failed!");
           throw new Error(`Catbox error: ${catboxError.message || catboxError}. TmpFiles error: ${fallbackErr.message || fallbackErr}`);
         }
       }
