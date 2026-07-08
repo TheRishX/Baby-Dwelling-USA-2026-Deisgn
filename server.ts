@@ -34,6 +34,72 @@ if (fs.existsSync(FIREBASE_CONFIG_FILE)) {
   console.warn("firebase-applet-config.json not found. Running with local fallback only.");
 }
 
+// Ensure uploads directory exists globally
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Helper to migrate any in-place base64 images in config to local files
+function migrateBase64ConfigToLocal(config: any): boolean {
+  if (!config) return false;
+  let changed = false;
+
+  const migrateBase64ToLocalFile = (imageUrl: string, prefix: string): string => {
+    if (imageUrl && imageUrl.startsWith("data:image")) {
+      try {
+        const matches = imageUrl.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches) {
+          const mimeType = matches[1];
+          const base64String = matches[2];
+          const buffer = Buffer.from(base64String, "base64");
+          const ext = mimeType.split("/")[1] || "jpg";
+          const uniqueName = `migrated_${prefix}_${Date.now()}_${Math.round(Math.random() * 1000)}.${ext}`;
+          const filePath = path.join(uploadsDir, uniqueName);
+          fs.writeFileSync(filePath, buffer);
+          console.log(`Migrated in-place base64 image to local file: /uploads/${uniqueName}`);
+          return `/uploads/${uniqueName}`;
+        }
+      } catch (err) {
+        console.error("Failed to migrate base64 in-place:", err);
+      }
+    }
+    return imageUrl;
+  };
+
+  if (config.heroImage && config.heroImage.startsWith("data:image")) {
+    config.heroImage = migrateBase64ToLocalFile(config.heroImage, "hero");
+    changed = true;
+  }
+  if (config.logoImage && config.logoImage.startsWith("data:image")) {
+    config.logoImage = migrateBase64ToLocalFile(config.logoImage, "logo");
+    changed = true;
+  }
+  if (config.signatureProduct && config.signatureProduct.image && config.signatureProduct.image.startsWith("data:image")) {
+    config.signatureProduct.image = migrateBase64ToLocalFile(config.signatureProduct.image, "sig_prod");
+    changed = true;
+  }
+  if (config.products && Array.isArray(config.products)) {
+    config.products.forEach((prod: any) => {
+      if (prod.image && prod.image.startsWith("data:image")) {
+        prod.image = migrateBase64ToLocalFile(prod.image, `prod_${prod.id}`);
+        changed = true;
+      }
+      if (prod.images && Array.isArray(prod.images)) {
+        prod.images = prod.images.map((img: string, idx: number) => {
+          if (img && img.startsWith("data:image")) {
+            changed = true;
+            return migrateBase64ToLocalFile(img, `prod_${prod.id}_sub_${idx}`);
+          }
+          return img;
+        });
+      }
+    });
+  }
+
+  return changed;
+}
+
 // Helper to load site configuration (Firestore with local fallback and automatic high-res Unsplash migration)
 async function loadConfig() {
   let config: any = null;
@@ -69,7 +135,7 @@ async function loadConfig() {
 
   // Migrate old banner image and placeholders to stunning high-resolution Unsplash alternatives
   if (config) {
-    let changed = false;
+    let changed = migrateBase64ConfigToLocal(config);
     if (!config.heroImage || config.heroImage.includes("aida-public") || config.heroImage.includes("logoImage")) {
       config.heroImage = "https://images.unsplash.com/photo-1544126592-807adc21510d?auto=format&fit=crop&w=2000&q=80";
       changed = true;
@@ -101,7 +167,7 @@ async function loadConfig() {
     }
 
     if (changed) {
-      console.log("Config upgraded with beautiful high-res Unsplash images.");
+      console.log("Config upgraded with beautiful high-res Unsplash or migrated local images.");
       await saveConfig(config);
     }
   }
@@ -152,6 +218,9 @@ function updateConfigImageVersions(oldConfig: any, newConfig: any) {
 
 // Helper to save site configuration (Firestore + local backup)
 async function saveConfig(config: any) {
+  // Migrate any base64 images to local files before saving to keep Firestore and config small
+  migrateBase64ConfigToLocal(config);
+
   // Load existing config to apply differential versioning to changed images
   let oldConfig: any = null;
   try {
@@ -261,6 +330,9 @@ async function startServer() {
   // Use JSON parsing with larger size limit for custom base64 logos or images
   app.use(express.json({ limit: "20mb" }));
 
+  // Serve uploaded images statically
+  app.use("/uploads", express.static(uploadsDir));
+
   // API endpoints must go FIRST
   app.get("/api/site-config", async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -352,6 +424,34 @@ async function startServer() {
         return res.status(400).json({ error: "Missing image data" });
       }
 
+      console.log(`Processing upload for image '${name || "unnamed"}'...`);
+
+      // 1. Try to save locally first (highly reliable, lightning fast, and keeps Firestore extremely small)
+      try {
+        const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches) {
+          const mimeType = matches[1];
+          const base64String = matches[2];
+          const buffer = Buffer.from(base64String, "base64");
+          const ext = mimeType.split("/")[1] || "jpg";
+          
+          const cleanName = (name || "image")
+            .replace(/[^a-zA-Z0-9.-]/g, "_")
+            .substring(0, 50);
+          const uniqueName = `upload_${Date.now()}_${Math.round(Math.random() * 10000)}_${cleanName}`;
+          
+          const filePath = path.join(uploadsDir, uniqueName);
+          await fs.promises.writeFile(filePath, buffer);
+          
+          const localUrl = `/uploads/${uniqueName}`;
+          console.log(`Image saved successfully to local server disk: ${localUrl}`);
+          return res.json({ success: true, url: localUrl });
+        }
+      } catch (localErr) {
+        console.warn("Failed to save image locally, trying online upload fallback:", localErr);
+      }
+
+      // 2. Fallback to online hosting (Catbox/TmpFiles) if local saving failed or was skipped
       console.log(`Uploading received image '${name || "unnamed"}' to online storage...`);
       let onlineUrl: string | null = null;
       let catboxError: any = null;
@@ -373,8 +473,8 @@ async function startServer() {
 
       res.json({ success: true, url: onlineUrl });
     } catch (err: any) {
-      console.error("Error uploading image online:", err);
-      res.status(500).json({ error: err.message || "Failed to upload image online" });
+      console.error("Error processing image upload:", err);
+      res.status(500).json({ error: err.message || "Failed to process image upload" });
     }
   });
 

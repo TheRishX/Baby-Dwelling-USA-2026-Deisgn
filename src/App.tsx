@@ -252,6 +252,29 @@ export default function App() {
     };
   }, [isCustomizingMode, activeView]);
 
+  const executeWithRetry = async <T,>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelayMs: number = 1000
+  ): Promise<T> => {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await operation();
+      } catch (error) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          console.error(`❌ Maximum retries (${maxRetries}) reached. Operation failed:`, error);
+          throw error;
+        }
+        // Calculate exponential backoff delay with some random jitter (up to 200ms)
+        const backoffDelay = initialDelayMs * Math.pow(2, attempt) + Math.random() * 200;
+        console.warn(`⚠️ Firestore write failed (attempt ${attempt}/${maxRetries}). Retrying in ${Math.round(backoffDelay)}ms...`, error);
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+      }
+    }
+  };
+
   const saveConfigToBackend = async (newConfig: any) => {
     setSyncState('saving');
     let success = false;
@@ -259,7 +282,9 @@ export default function App() {
       // 1. Direct Firebase Firestore write on the client side (Instant live sync for Vercel & local development)
       if (clientDb) {
         const docRef = doc(clientDb, "siteConfigs", "baby_dwelling");
-        await setDoc(docRef, newConfig);
+        await executeWithRetry(async () => {
+          await setDoc(docRef, newConfig);
+        }, 3, 1000);
         console.log("⚡ Saved successfully to Firestore directly from client!");
         success = true;
       }
@@ -291,6 +316,7 @@ export default function App() {
       setTimeout(() => setSyncState('idle'), 2500);
     } else {
       setSyncState('error');
+      setTimeout(() => setSyncState('idle'), 3500);
     }
   };
 
@@ -381,6 +407,7 @@ export default function App() {
       triggerToast('✨ Bulk prices and availability updated successfully!');
     } else {
       setSyncState('error');
+      setTimeout(() => setSyncState('idle'), 3500);
       triggerToast('❌ Error performing bulk update.');
     }
   };

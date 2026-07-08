@@ -83,6 +83,35 @@ export default function AdminView({
   const [isSavedToastOpen, setIsSavedToastOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPendingState, setUploadPendingState] = useState<'idle' | 'compressing' | 'uploading' | 'saving' | 'completed' | 'error'>('idle');
+
+  // Helper to validate image URLs before saving them to the site configuration
+  const validateImageUrl = (url: string): boolean => {
+    if (!url) return false;
+    // Accept standard Base64 data URLs, local uploads path, or blob URLs
+    if (url.startsWith('data:image/') || url.startsWith('/uploads/') || url.startsWith('blob:')) {
+      return true;
+    }
+    // Check if it's a valid URL with http or https protocol
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Helper to get custom progress message for image uploading states
+  const getUploadProgressText = (status: 'idle' | 'compressing' | 'uploading' | 'saving' | 'completed' | 'error', defaultText = 'Uploading...') => {
+    switch (status) {
+      case 'compressing': return 'Compressing image...';
+      case 'uploading': return 'Uploading to server...';
+      case 'saving': return 'Saving config...';
+      case 'completed': return 'Uploaded! ✨';
+      case 'error': return 'Upload failed ❌';
+      default: return defaultText;
+    }
+  };
 
   // Upload references for Base64 image uploading
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +174,41 @@ export default function AdminView({
     showSavedToast();
   };
 
+  // Validates all configured image URLs before triggering the final onSave function
+  const handleSaveWithValidation = () => {
+    // 1. Validate Hero Image URL
+    if (siteConfig.heroImage && !validateImageUrl(siteConfig.heroImage)) {
+      alert('❌ Cannot save: Please enter a valid Hero Background Image URL (starting with http://, https://, or /uploads/).');
+      return;
+    }
+    // 2. Validate Signature Product Image URL
+    if (siteConfig.signatureProduct?.image && !validateImageUrl(siteConfig.signatureProduct.image)) {
+      alert('❌ Cannot save: Please enter a valid Signature Product Image URL.');
+      return;
+    }
+    // 3. Validate All Product Image URLs
+    if (siteConfig.products && Array.isArray(siteConfig.products)) {
+      for (const prod of siteConfig.products) {
+        if (prod.image && !validateImageUrl(prod.image)) {
+          alert(`❌ Cannot save: The image URL for product "${prod.title}" is invalid.`);
+          return;
+        }
+      }
+    }
+    // 4. Validate Review / Testimonial Image URLs if they exist
+    if (siteConfig.reviews && Array.isArray(siteConfig.reviews)) {
+      for (const rev of siteConfig.reviews) {
+        if (rev.image && !validateImageUrl(rev.image)) {
+          alert(`❌ Cannot save: The image URL for reviewer "${rev.author}" is invalid.`);
+          return;
+        }
+      }
+    }
+
+    // Call actual save function if all validations pass
+    onSave();
+  };
+
   // Reset helper
   const handleResetToDefaults = () => {
     localStorage.removeItem('bd_site_config_v1');
@@ -180,11 +244,13 @@ export default function AdminView({
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
+    setUploadPendingState('compressing');
     try {
       // 1. Compress client-side
       const base64 = await compressImage(file);
       let uploadUrl = base64;
 
+      setUploadPendingState('uploading');
       try {
         // 2. Try online upload
         const response = await fetch('/api/upload', {
@@ -211,6 +277,7 @@ export default function AdminView({
         console.warn("Online upload failed or was blocked, falling back to local compressed Base64:", uploadErr);
       }
 
+      setUploadPendingState('saving');
       // 3. Save configuration
       if (uploadTarget === 'hero') {
         handleConfigChange('heroImage', uploadUrl);
@@ -228,8 +295,12 @@ export default function AdminView({
         );
         handleConfigChange('products', updatedProducts);
       }
+      setUploadPendingState('completed');
+      setTimeout(() => setUploadPendingState('idle'), 3000);
     } catch (err) {
       console.error("Error compressing and uploading image in admin view:", err);
+      setUploadPendingState('error');
+      setTimeout(() => setUploadPendingState('idle'), 4000);
     } finally {
       setIsUploading(false);
     }
@@ -243,6 +314,10 @@ export default function AdminView({
   // Products manager handlers
   const handleSaveProductEdit = () => {
     if (!editingProduct) return;
+    if (editingProduct.image && !validateImageUrl(editingProduct.image)) {
+      alert('❌ Invalid Primary Product Image URL. Please enter a valid URL (starting with http://, https://, or /uploads/).');
+      return;
+    }
     const updatedProducts = siteConfig.products.map((p: Product) => 
       p.id === editingProduct.id ? editingProduct : p
     );
@@ -253,6 +328,10 @@ export default function AdminView({
   const handleAddProduct = () => {
     if (!newProduct.title) {
       alert('Product title is required');
+      return;
+    }
+    if (newProduct.image && !validateImageUrl(newProduct.image)) {
+      alert('❌ Invalid Primary Product Image URL. Please enter a valid URL (starting with http://, https://, or /uploads/).');
       return;
     }
     const id = (newProduct.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -347,7 +426,7 @@ export default function AdminView({
             Baby Dwelling Store
           </span>
           <button 
-            onClick={onSave}
+            onClick={handleSaveWithValidation}
             disabled={syncState === 'saving'}
             className={`text-xs font-bold text-white px-3.5 py-1.5 rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
               syncState === 'saving' 
@@ -519,7 +598,7 @@ export default function AdminView({
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button
-                  onClick={onSave}
+                  onClick={handleSaveWithValidation}
                   disabled={syncState === 'saving'}
                   className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
                     syncState === 'saving'
@@ -709,8 +788,17 @@ export default function AdminView({
                       value={siteConfig.heroImage || ''} 
                       onChange={(e) => handleConfigChange('heroImage', e.target.value)}
                       placeholder="Enter Image URL directly"
-                      className="border border-[#C9CCCF] rounded-lg p-2.5 text-sm outline-none focus:border-[#008060] bg-white transition-colors w-full"
+                      className={`border rounded-lg p-2.5 text-sm outline-none bg-white transition-colors w-full ${
+                        siteConfig.heroImage && !validateImageUrl(siteConfig.heroImage)
+                          ? 'border-red-500 focus:border-red-500 text-red-700 bg-red-50/10'
+                          : 'border-[#C9CCCF] focus:border-[#008060]'
+                      }`}
                     />
+                    {siteConfig.heroImage && !validateImageUrl(siteConfig.heroImage) && (
+                      <p className="text-red-500 text-xs font-semibold">
+                        ⚠️ Please enter a valid image URL starting with http://, https://, or /uploads/
+                      </p>
+                    )}
 
                     {/* Drag and drop panel for file upload */}
                     <div 
@@ -726,9 +814,11 @@ export default function AdminView({
                       onClick={() => !isUploading && triggerFileInput('hero')}
                     >
                       {isUploading && uploadTarget === 'hero' && (
-                        <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center gap-2 z-10">
-                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-[#008060] border-t-transparent"></span>
-                          <span className="text-xs font-semibold text-gray-600">Processing &amp; uploading image...</span>
+                        <div className="absolute inset-0 bg-white/80 rounded-xl flex flex-col items-center justify-center gap-2 z-10">
+                          <span className="animate-spin rounded-full h-5 w-5 border-2 border-[#008060] border-t-transparent"></span>
+                          <span className="text-xs font-bold text-gray-700">
+                            {getUploadProgressText(uploadPendingState, "Processing & uploading image...")}
+                          </span>
                         </div>
                       )}
                       {siteConfig.heroImage ? (
@@ -932,7 +1022,7 @@ export default function AdminView({
                       {isUploading && uploadTarget === 'signature' ? (
                         <>
                           <span className="animate-spin rounded-full h-3 w-3 border-2 border-[#008060] border-t-transparent"></span>
-                          <span>Uploading...</span>
+                          <span>{getUploadProgressText(uploadPendingState, 'Uploading...')}</span>
                         </>
                       ) : (
                         <>
@@ -1187,7 +1277,11 @@ export default function AdminView({
                           type="text" 
                           value={newProduct.image || ''} 
                           onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                          className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-[#008060] flex-1"
+                          className={`border rounded-lg p-2 text-xs outline-none bg-white flex-1 ${
+                            newProduct.image && !validateImageUrl(newProduct.image)
+                              ? 'border-red-500 focus:border-red-500 text-red-700 bg-red-50/10'
+                              : 'border-[#C9CCCF] focus:border-[#008060]'
+                          }`}
                           placeholder="Paste image URL or click upload..."
                         />
                         <button
@@ -1199,7 +1293,7 @@ export default function AdminView({
                           {isUploading && uploadTarget === 'new-product' ? (
                             <>
                               <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-[#008060] border-t-transparent"></span>
-                              <span>Uploading...</span>
+                              <span>{getUploadProgressText(uploadPendingState, 'Uploading...')}</span>
                             </>
                           ) : (
                             <>
@@ -1209,6 +1303,11 @@ export default function AdminView({
                           )}
                         </button>
                       </div>
+                      {newProduct.image && !validateImageUrl(newProduct.image) && (
+                        <p className="text-red-500 text-[10px] font-semibold mt-1">
+                          ⚠️ Invalid URL. Must start with http://, https://, or /uploads/
+                        </p>
+                      )}
                       {newProduct.image && (
                         <div className="mt-2 relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 group">
                           <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
@@ -1410,7 +1509,11 @@ export default function AdminView({
                           type="text" 
                           value={editingProduct.image || ''} 
                           onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                          className="border border-[#C9CCCF] rounded-lg p-2 text-xs outline-none bg-white focus:border-amber-400 flex-1"
+                          className={`border rounded-lg p-2 text-xs outline-none bg-white flex-1 ${
+                            editingProduct.image && !validateImageUrl(editingProduct.image)
+                              ? 'border-red-500 focus:border-red-500 text-red-700 bg-red-50/10'
+                              : 'border-[#C9CCCF] focus:border-amber-400'
+                          }`}
                           placeholder="Paste image URL or click upload..."
                         />
                         <button
@@ -1422,7 +1525,7 @@ export default function AdminView({
                           {isUploading && uploadTarget === 'editing-product' ? (
                             <>
                               <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-amber-500 border-t-transparent"></span>
-                              <span>Uploading...</span>
+                              <span>{getUploadProgressText(uploadPendingState, 'Uploading...')}</span>
                             </>
                           ) : (
                             <>
@@ -1432,6 +1535,11 @@ export default function AdminView({
                           )}
                         </button>
                       </div>
+                      {editingProduct.image && !validateImageUrl(editingProduct.image) && (
+                        <p className="text-red-500 text-[10px] font-semibold mt-1">
+                          ⚠️ Invalid URL. Must start with http://, https://, or /uploads/
+                        </p>
+                      )}
                       {editingProduct.image && (
                         <div className="mt-2 relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 group">
                           <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
@@ -1577,7 +1685,7 @@ export default function AdminView({
                               onClick={() => !isUploading && triggerFileInput(prod.id)}
                               disabled={isUploading && uploadTarget === prod.id}
                               className="p-1.5 text-gray-500 hover:text-[#008060] hover:bg-[#EAF3EF] rounded transition-all disabled:opacity-50"
-                              title={isUploading && uploadTarget === prod.id ? "Uploading..." : "Replace Photo"}
+                              title={isUploading && uploadTarget === prod.id ? getUploadProgressText(uploadPendingState, "Uploading...") : "Replace Photo"}
                             >
                               {isUploading && uploadTarget === prod.id ? (
                                 <span className="animate-spin rounded-full h-3 w-3 border-2 border-[#008060] border-t-transparent block mx-auto"></span>
